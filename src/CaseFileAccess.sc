@@ -2,8 +2,9 @@
  T.R.S. → SCI0 port
  ******************************************************************************
  CaseFileAccess.sc
- GetCaseFile/SetCaseFile: array-like access over the 108 scalar globals
- gCF0..gCF107 (Main.sc). Split out of CaseFiles.sc so this stays small
+ GetCaseFile/SetCaseFile: array-like access over the Case Files slots --
+ scalar globals gCF0..gCF107 (Main.sc), plus slot 108 (CASEFILE_PORTRAIT)
+ mapped straight onto gPortraitChoice. Split out of CaseFiles.sc so this stays small
  and permanently resident (Main.sc calls GetCaseFile() at boot) while
  CaseFiles.sc itself and the larger CaseFileTitle/description lookups
  stay Load/Dispose-scoped.
@@ -125,6 +126,7 @@
 		(case 105 return(gCF105))
 		(case 106 return(gCF106))
 		(case 107 return(gCF107))
+		(case 108 return(+ gPortraitChoice 1))	// CASEFILE_PORTRAIT, +1 so 0 = never chosen
 	)
 	return(0)
 )
@@ -239,5 +241,6 @@
 		(case 105 = gCF105 value)
 		(case 106 = gCF106 value)
 		(case 107 = gCF107 value)
+		(case 108 = gPortraitChoice (- value 1))
 	)
 )

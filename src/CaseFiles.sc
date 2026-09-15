@@ -8,14 +8,15 @@
  8 + 3 failure pools x 10 = 102) plus the 5 coping mechanisms -- see
  game.sh for the full flat index scheme.
 
- gCF0..gCF107 (Main.sc, CASEFILE_COUNT = 108) are the in-memory discovery
+ gCF0..gCF107 (Main.sc) are the in-memory discovery
  flags -- individual scalar globals, not an array (a global array in
  Main.sc isn't visible from other scripts the way scalars are).
  GetCaseFile/SetCaseFile (CaseFileAccess.sc) give array-like access over
  them. LoadCaseFiles()/SaveCaseFiles() sync all 108 with TRSCASE.DAT,
  plain ASCII one value per line (docs/SCI0-research-findings.md's
  QFG-style pattern). Slot 107 (CASEFILE_NGPLUS) is the unrelated Extended
- Therapy unlock flag riding on the same array/file.
+ Therapy unlock flag riding on the same array/file, and slot 108
+ (CASEFILE_PORTRAIT) is the player's chosen appearance.
 
  ShowCaseFiles() is a category menu (Survival Endings / Failure Endings /
  Coping Mechanisms) -- it just returns which one was picked (1/2/3, or 0
@@ -56,6 +57,10 @@
 	// Placed after the early-return so a missing save file never touches it.
 	Load(rsSCRIPT CASEFILEACCESS_SCRIPT)
 	(for (= i 0) (< i CASEFILE_COUNT) (++i)
+		// Cleared first: a save written before a slot existed has fewer
+		// lines than CASEFILE_COUNT, and FGets at end of file may leave
+		// the previous line in the buffer -- a missing line must read 0.
+		= lineBuf[0] 0
 		FGets(@lineBuf 6 hFile)
 		SetCaseFile(i ReadNumber(@lineBuf))
 	)
@@ -101,10 +106,23 @@
 	= gNgPlusUnlocked TRUE
 )
 /******************************************************************************/
+(procedure public (SavePortraitChoice choice)
+	// The office's appearance picker (rm003.sc). Rides on the Case Files
+	// array/file as slot CASEFILE_PORTRAIT, stored +1 so 0 means never
+	// chosen; CaseFileAccess.sc maps that slot onto gPortraitChoice, so
+	// this sets the global too.
+	Load(rsSCRIPT CASEFILEACCESS_SCRIPT)
+	SetCaseFile(CASEFILE_PORTRAIT (+ choice 1))
+	SaveCaseFiles()
+	DisposeScript(CASEFILEACCESS_SCRIPT)
+)
+/******************************************************************************/
 (procedure public (ResetAllData)
 	// menubar.sc's Reset Data, confirm-gated there. Wipes every Case
 	// Files discovery flag and the Extended Therapy unlock (both ride on
-	// the same gCF0..107/TRSCASE.DAT array -- see game.sh), and re-saves
+	// the same TRSCASE.DAT array -- see game.sh) plus the chosen
+	// appearance (slot 108, which puts gPortraitChoice back to -1 so
+	// the office asks again), and re-saves
 	// so the file on disk reflects the wipe too, not just memory. Player
 	// name is separate state (SetPlayerName, mechanisms.sc); the caller
 	// resets that on its own.

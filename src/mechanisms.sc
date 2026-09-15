@@ -217,7 +217,7 @@
 	// Maps a portrait index (0..PORTRAIT_COUNT-1 -- see game.sh and
 	// PromptPortraitChoice, printchoices.sc) to its PORTRAIT_VIEW_n
 	// resource number. gPortraitChoice (Main.sc) holds whichever index
-	// the player picked at the start of this run; PrintChoices' mood
+	// the player picked (persisted, see CASEFILE_PORTRAIT); PrintChoices' mood
 	// icon calls this with gPortraitChoice directly.
 	(if(== idx 1)
 		return(PORTRAIT_VIEW_1)
@@ -359,8 +359,8 @@
 // already (use)s "main" -- adding that would be a brand-new circular
 // pair (see the Main.sc<->CaseFiles.sc precedent elsewhere in this
 // codebase for why that's worth avoiding without being able to
-// test-compile the result first). rm001.sc already calls GetPlayerName
-// unconditionally at the top of every run, so that's the natural first
+// test-compile the result first). The office (rm003.sc) calls GetPlayerName
+// on every fresh arrival, so that's the natural first
 // touch point each session.
 (procedure (EnsurePlayerNameLoaded)
 	(var hFile)
