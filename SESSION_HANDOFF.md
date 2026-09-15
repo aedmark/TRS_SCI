@@ -1013,10 +1013,7 @@ after editing the relevant `js/content*.js` source.
    file back (see Findings); (b) in the Vocabulary editor, give `use` the
    **Imperative Verb** class (right-click → checkbox, Wine-safe) — until
    then "use computer" gets "That doesn't appear to be a proper
-   sentence."; (c) `TEXT_UI` entry 7 (`TEXT_UI_CLOSE_BTN`) reads
-   "Closed" — almost certainly meant "Close". It labels the Case Files
-   viewer's close button and now the category menu's too; fix it in the
-   Text editor. Then Compile All and Rebuild Resources. Checklist:
+   sentence." Then Compile All and Rebuild Resources. Checklist:
    - Fresh save (move `TRSCASE.DAT`/`TRSNAME.DAT` aside) → title →
      portrait picker first, then name, then the welcome, all in the
      office.
