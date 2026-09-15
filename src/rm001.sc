@@ -9,8 +9,8 @@
  (game.sh) means each of the 196 event rooms ends its own turn via
  EndTurn() (mechanisms.sc) and transitions directly to the next.
  Reached only from the office's computer (rm003.sc). This room just
- does the per-run reset and, for returning players, the Standard/
- Extended Therapy mode choice, then bootstraps the first turn through
+ does the per-run reset and applies whichever mode the office's
+ computer prompt picked, then bootstraps the first turn through
  EndTurn() with gTurn pre-set to 0. Never revisited mid-run. The
  one-time setup questions (appearance, name) live in the office.
  ******************************************************************************/
@@ -29,7 +29,6 @@
 (use "door")
 (use "jump")
 (use "dpath")
-(use "printchoices")
 (use "mechanisms")
 /******************************************************************************/
 (instance public rm001 of Rm
@@ -42,8 +41,7 @@
 		west 0
 	)
 	(method (init)
-		(var newSessionPromptBuf[72], newSessionTitleBuf[16],
-			standardBtnBuf[32], extendedBtnBuf[48], extendedTitleBuf[24])
+		(var extendedTitleBuf[24])
 		// same in every script, starts things up
   		(super:init())
   		(self:setScript(RoomScript))
@@ -96,30 +94,8 @@
 		ProgramControl()
 		(send gEgo:hide())
 
-		// Extended Therapy mode choice -- returning players only; new
-		// players go straight into a standard 10-turn run. Fixed,
-		// hand-authored text read from TEXT_UI (see game.sh), not literals.
-		(if(gNgPlusUnlocked)
-			Load(rsTEXT TEXT_UI)
-			GetFarText(TEXT_UI TEXT_UI_NEWSESSION_PROMPT @newSessionPromptBuf)
-			GetFarText(TEXT_UI TEXT_UI_NEWSESSION_TITLE @newSessionTitleBuf)
-			GetFarText(TEXT_UI TEXT_UI_STANDARD_BTN @standardBtnBuf)
-			GetFarText(TEXT_UI TEXT_UI_EXTENDED_BTN @extendedBtnBuf)
-			// No DisposeScript(TEXT_UI) -- see CaseFiles.sc for the real
-			// bug this avoids: DisposeScript() is script-specific, and
-			// TEXT_UI's resource number collides with MAIN_SCRIPT's
-			// script number.
-			= gHardMode PrintChoices(
-				@newSessionPromptBuf
-				@newSessionTitleBuf
-				290
-				NULL
-				@standardBtnBuf FALSE
-				@extendedBtnBuf TRUE
-			)
-		)(else
-			= gHardMode FALSE
-		)
+		// gHardMode was picked by the office computer's prompt (rm003.sc's
+		// startSession) -- always FALSE for new players.
 		(if(gHardMode)
 			= gMaxTurns HARD_MODE_TURNS
 			// Message comes straight from TEXT_UI via Print()'s own native

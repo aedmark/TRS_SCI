@@ -58,7 +58,7 @@
 	gChild = STARTING_CHILD			/* T.R.S. stat: inner child, loses at 0 */
 	gTurn = 1				/* T.R.S.: current turn number, 1-based */
 	gMaxTurns = DEFAULT_MAX_TURNS	/* set per-run in rm001.sc's init() */
-	gHardMode = FALSE		/* Extended Therapy, chosen per-run in rm001.sc; not itself persisted, see gNgPlusUnlocked */
+	gHardMode = FALSE		/* Extended Therapy, chosen per session by the office computer's prompt (rm003.sc); not itself persisted, see gNgPlusUnlocked */
 	gNgPlusUnlocked = FALSE	/* permanently TRUE once a standard run has ever survived -- mirrors gCF107/CASEFILE_NGPLUS, synced in Template:init() */
 	gPortraitChoice = -1	/* which of PORTRAIT_VIEW_0..3 (game.sh) the player is, -1 until first chosen; persisted as Case Files slot CASEFILE_PORTRAIT (CaseFileAccess.sc maps that slot onto this global), asked in the office (rm003.sc) */
 

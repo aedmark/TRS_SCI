@@ -125,3 +125,15 @@ HELP if you're not sure what to do.)
 
 [LOOK_MIRROR]
 Your reflection looks back at you, patient. Is this who you are today?
+
+# The computer's session prompt for new players (returning players get
+# TEXT_UI's Standard/Extended Therapy wording instead); NOT_YET_BTN is the
+# way back out for both.
+[SESSION_PROMPT]
+The screen flickers awake and waits. Start a new session?
+
+[BEGIN_BTN]
+Begin a session (10 turns)
+
+[NOT_YET_BTN]
+Not yet

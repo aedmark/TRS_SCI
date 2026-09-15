@@ -121,8 +121,9 @@ feature under that name (not invented for this port) — survive one
 standard run and it unlocks permanently (tracked as hidden Case Files
 slot 107); every future session then offers a Standard (10 turns) vs.
 Extended Therapy (20 turns, every stat swing scaled ×1.25, including
-mechanism modifiers and the glitch wildcard) choice at `rm001.sc`'s
-`init()`. Confirmed working end to end, including a full 20-turn run.
+mechanism modifiers and the glitch wildcard) choice, asked by the
+office's computer (`rm003.sc`'s `startSession`; `rm001.sc`'s `init()`
+before the 2026-09-14 hub change). Confirmed working end to end, including a full 20-turn run.
 
 **Player portrait — now selectable, 4 options.** Shown inside the
 `PrintChoices` dialog itself (a `DIcon`, not a room-background draw) via
@@ -243,10 +244,16 @@ coming back from `ENDING_ROOM`, per `gPreviousRoomNumber`, which
 `Game.sc` sets to the room just left) also starts the music and prints
 a short welcome pointing at the computer. From there the player can
 stay as long as they like: the filing cabinet opens Case Files, and the
-computer — click, "turn on computer", or "use computer" — goes to
-`rm001.sc` (`SESSION_ROOM`) for the per-run reset. New players go
-straight into a standard 10-turn run; returning players
-(`gNgPlusUnlocked`) choose Standard or Extended Therapy. Both hotspots
+computer — click, "turn on computer", or "use computer" — asks one
+question that can always be backed out of ("Not yet", or Escape, both
+value `SESSION_NOT_YET` = 0). New players confirm a standard 10-turn
+run; returning players (`gNgPlusUnlocked`) choose Standard or Extended
+Therapy — that choice moved here from `rm001.sc`, which now just
+applies `gHardMode`. Then it goes to `rm001.sc` (`SESSION_ROOM`) for the
+per-run reset. The Case Files category menu also got a Close button
+(reusing `TEXT_UI_CLOSE_BTN`); before, only Escape backed out of it. Both
+back-outs were the user's request: a mis-click or a change of heart
+should never trap anyone in a session or a viewer. Both hotspots
 are hit-tested via the hand-estimated `CABINET_X1/Y1/X2/Y2` and
 `COMPUTER_X1/Y1/X2/Y2` rectangles in `game.sh` (confirmed working when
 they lived in `rm002.sc`; never needed adjustment). The computer used to
@@ -545,15 +552,16 @@ verify it. Rules:
   scoped around the one time per session (if any) it's actually shown.
 - `EndingSurvival0-8.sc`(162-170) / `EndingFailure0-2.sc`(171-173) — one
   file per ending pool, generated.
-- `rm001.sc`(1, `SESSION_ROOM`) — per-run reset, Extended Therapy
-  mode-choice dialog (returning players only), bootstraps the first turn
-  via `EndTurn()`. Reached only from the office's computer; never
+- `rm001.sc`(1, `SESSION_ROOM`) — per-run reset, applies the mode the
+  office's computer prompt picked (`gHardMode`), bootstraps the first
+  turn via `EndTurn()`. Reached only from the office's computer; never
   revisited mid-run.
 - `rm002.sc`(2, `ENDING_ROOM`) — prints the ending cards, then hands off
   to the office.
 - `rm003.sc`(3, `OFFICE_ROOM`) — the office hub: the one-time appearance
-  and name questions, the filing cabinet/computer hotspots, the text
-  parser, and the mirror.
+  and name questions, the filing cabinet/computer hotspots, the
+  computer's session prompt (Standard/Extended/Not yet), the text parser,
+  and the mirror.
 - `rm200`-`rm395` — the 196 generated event rooms.
 - `game.sh` / `game.ini` — constants and the resource manifest,
   respectively. Every new script needs an entry in **both**.
@@ -590,7 +598,8 @@ after editing the relevant `js/content*.js` source.
   dropped straight into the event cards, and nothing is asked before a
   session beyond the one-time setup (appearance, then name). The
   appearance persists; only the office mirror changes it. Sessions start
-  only from the office's computer.
+  only from the office's computer, and every pop-up the office opens
+  (the session prompt, Case Files) can be backed out of.
 - **Permanently cut, not deferred**: runtime-loadable content packs /
   `editor.html` (SCI0 compiles everything at build time), Share Result
   PNG / mobile share sheet (no such OS concept on DOS), ScummVM as a test
@@ -1004,16 +1013,24 @@ after editing the relevant `js/content*.js` source.
    file back (see Findings); (b) in the Vocabulary editor, give `use` the
    **Imperative Verb** class (right-click → checkbox, Wine-safe) — until
    then "use computer" gets "That doesn't appear to be a proper
-   sentence." Then Compile All and Rebuild Resources. Checklist:
+   sentence."; (c) `TEXT_UI` entry 7 (`TEXT_UI_CLOSE_BTN`) reads
+   "Closed" — almost certainly meant "Close". It labels the Case Files
+   viewer's close button and now the category menu's too; fix it in the
+   Text editor. Then Compile All and Rebuild Resources. Checklist:
    - Fresh save (move `TRSCASE.DAT`/`TRSNAME.DAT` aside) → title →
      portrait picker first, then name, then the welcome, all in the
      office.
-   - Click the computer → straight into a 10-turn run, no mode question.
+   - Click the computer → "Start a new session?" with Begin / Not yet.
+     Not yet and Escape both leave you in the office; Begin → a 10-turn
+     run.
    - Finish → ending cards → back in the office, with no welcome and the
      music not restarting.
    - `look mirror` → picker; pick a different one and check the event
      dialogs use it. Quit and relaunch → not asked again.
-   - Survive a run, then click the computer → Standard/Extended choice.
+   - Survive a run, then click the computer → Standard / Extended / Not
+     yet; Escape must back out, not start a Standard run.
+   - Filing cabinet (and the `^f` menu item) → the category menu has a
+     Close button that backs out.
    - `turn on computer` starts a session; `turn off computer` must not.
      This is the codebase's first `<` in a `Said()` — if "turn on
      computer" gets the FALLBACK line instead, that operator doesn't

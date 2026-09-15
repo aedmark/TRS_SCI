@@ -20,7 +20,7 @@
 
  ShowCaseFiles() is a category menu (Survival Endings / Failure Endings /
  Coping Mechanisms) -- it just returns which one was picked (1/2/3, or 0
- for cancelled). Callers (menubar.sc, rm002.sc) Dispose this script and
+ for cancelled). Callers (menubar.sc, rm003.sc) Dispose this script and
  Load CaseFileCategory.sc's ShowCaseFileCategory() separately for
  whichever category was chosen, so browsing a category (which repeatedly
  loads description scripts on top) never has this file's own
@@ -138,7 +138,7 @@
 /******************************************************************************/
 (procedure public (ShowCaseFiles)
 	// Category menu, reachable via the "Case Files" menu item (menubar.sc)
-	// or the ending room's filing cabinet. Hand-rolled vertical DButtons
+	// or the office's filing cabinet (rm003.sc). Hand-rolled vertical DButtons
 	// rather than calling PrintChoices() -- PrintChoices uses mechanisms,
 	// which uses casefiles, so calling it from here would be a new 3-hop
 	// (use ...) cycle this codebase has never compiled before. Cheaper to
@@ -147,10 +147,11 @@
 	// Returns which category was picked (1/2/3) so the caller can Dispose
 	// this script before loading CaseFileCategory.sc -- see file header.
 	// Button values are 1/2/3, never 0 -- Dialog:doit() returns plain
-	// 0/FALSE on Escape, so 0 stays an unambiguous "cancelled" sentinel.
-	(var hDialog, hDText, hButtons[3], i, curY, hResult, choice,
+	// 0/FALSE on Escape, so 0 stays an unambiguous "cancelled" sentinel --
+	// which is also the Close button's value.
+	(var hDialog, hDText, hButtons[4], i, curY, hResult, choice,
 		titleBuf[16], promptBuf[120], survivalBuf[24], failureBuf[24],
-		mechBuf[24])
+		mechBuf[24], closeBuf[16])
 	// All five strings read from the TEXT_UI resource, copied into their
 	// own local buffers. Deliberately NOT DisposeScript(TEXT_UI)'d after --
 	// real bug, found the hard way: DisposeScript() is script-specific
@@ -168,6 +169,7 @@
 	GetFarText(TEXT_UI TEXT_UI_CASEFILES_SURVIVAL_BTN @survivalBuf)
 	GetFarText(TEXT_UI TEXT_UI_CASEFILES_FAILURE_BTN @failureBuf)
 	GetFarText(TEXT_UI TEXT_UI_CASEFILES_MECH_BTN @mechBuf)
+	GetFarText(TEXT_UI TEXT_UI_CLOSE_BTN @closeBuf)
 
 	= hDialog (Dialog:new())
 	(send hDialog:
@@ -216,6 +218,20 @@
 		moveTo(4 curY)
 	)
 	(send hDialog:add(hButtons[2]))
+	= curY (+ (send hButtons[2]:nsBottom) 3)
+
+	// A visible way back out (Escape already worked, but nothing said so)
+	// -- same label as CaseFileCategory.sc's own Close button. Value 0 is
+	// the same "cancelled" every caller already handles.
+	= hButtons[3] (DButton:new())
+	(send hButtons[3]:
+		text(@closeBuf)
+		value(0)
+		font(SMALL_FONT)
+		setSize()
+		moveTo(4 curY)
+	)
+	(send hDialog:add(hButtons[3]))
 
 	(send hDialog:
 		setSize()
@@ -233,7 +249,7 @@
 	// early break, not chained if/else (no precedent in this codebase for
 	// 3+-branch chaining).
 	= choice 0
-	(for (= i 0) (< i 3) (++i)
+	(for (= i 0) (< i 4) (++i)
 		(if(== hResult hButtons[i])
 			= choice (send hButtons[i]:value)
 			break

@@ -310,13 +310,20 @@
 // Extended Therapy / New Game+ (matches js/content.js's maxTurns: 10,
 // hardModeTurns: 20, hardModeMultiplier: 1.25). Unlocks permanently the
 // first time a standard run survives (UnlockNgPlus(), CaseFiles.sc,
-// persisted as Case Files slot CASEFILE_NGPLUS); rm001.sc then offers a
-// choice at the top of every run. SCI0 has no floats -- 1.25 is an
+// persisted as Case Files slot CASEFILE_NGPLUS); the office's computer
+// (rm003.sc) then offers the choice when starting a session. SCI0 has no floats -- 1.25 is an
 // integer 5/4 multiply-then-round in mechanisms.sc's ScaleHardMode().
 (define DEFAULT_MAX_TURNS	10)
 (define HARD_MODE_TURNS		20)
 (define HARD_MODE_MULT_NUM	5)		/* 5/4 = 1.25x stat-swing multiplier in Extended Therapy */
 (define HARD_MODE_MULT_DEN	4)
+
+// The office computer's session prompt (rm003.sc's startSession).
+// SESSION_NOT_YET must stay 0: PrintChoices reports Escape as 0, so
+// Escape backs out too.
+(define SESSION_NOT_YET		0)
+(define SESSION_STANDARD	1)
+(define SESSION_EXTENDED	2)
 
 // Defaults
 (define NORMAL_SPEED		  8)

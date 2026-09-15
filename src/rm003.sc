@@ -6,8 +6,8 @@
  (initrooms.sc), and so does every finished run once rm002.sc has shown its
  ending cards. Nothing here pushes the player into the event cards: the
  only questions are the one-time setup ones (appearance, then name), and a
- session starts only when they click or turn on the computer, which hands
- off to rm001.sc. Until then they can look around, sit, and review their
+ session starts only when they pick one from the computer's prompt (which
+ they can always back out of), handing off to rm001.sc. Until then they can look around, sit, and review their
  Case Files for as long as they like.
  ******************************************************************************/
 (include "sci.sh")
@@ -139,6 +139,49 @@
         SavePortraitChoice(gPortraitChoice)
         DisposeScript(CASEFILES_SCRIPT)
 	)
+	(method (startSession)
+        (var promptBuf[72], titleBuf[16], standardBuf[32], extendedBuf[48],
+            notYetBuf[16], choice)
+        // The computer's one question, always with a way back out, so a
+        // mis-click or a change of heart just leaves the player in the
+        // office. Returning players pick Standard or Extended Therapy here
+        // (this used to be rm001.sc's question); new players just confirm a
+        // standard run. Values are game.sh's SESSION_* -- SESSION_NOT_YET
+        // is 0, which is also what PrintChoices returns for Escape.
+        Load(rsTEXT TEXT_UI)
+        GetFarText(TEXT_UI TEXT_UI_NEWSESSION_TITLE @titleBuf)
+        GetFarText(TEXT_OFFICE TXT_OFFICE_NOT_YET_BTN @notYetBuf)
+        (if(gNgPlusUnlocked)
+            GetFarText(TEXT_UI TEXT_UI_NEWSESSION_PROMPT @promptBuf)
+            GetFarText(TEXT_UI TEXT_UI_STANDARD_BTN @standardBuf)
+            GetFarText(TEXT_UI TEXT_UI_EXTENDED_BTN @extendedBuf)
+            = choice PrintChoices(
+                @promptBuf
+                @titleBuf
+                290
+                NULL
+                @standardBuf SESSION_STANDARD
+                @extendedBuf SESSION_EXTENDED
+                @notYetBuf SESSION_NOT_YET
+            )
+        )(else
+            GetFarText(TEXT_OFFICE TXT_OFFICE_SESSION_PROMPT @promptBuf)
+            GetFarText(TEXT_OFFICE TXT_OFFICE_BEGIN_BTN @standardBuf)
+            = choice PrintChoices(
+                @promptBuf
+                @titleBuf
+                290
+                NULL
+                @standardBuf SESSION_STANDARD
+                @notYetBuf SESSION_NOT_YET
+            )
+        )
+        (if(== choice SESSION_NOT_YET)
+            return
+        )
+        = gHardMode (== choice SESSION_EXTENDED)
+        (send gRoom:newRoom(SESSION_ROOM))
+	)
 	(method (handleEvent pEvent)
         (super:handleEvent(pEvent))
         // Filing cabinet -> Case Files viewer (also reachable by typing
@@ -155,16 +198,15 @@
                 )
             )
         )
-        // Computer -> starts a session (also "turn on computer" / "use
-        // computer", below). rm001.sc does the per-run reset and, for
-        // returning players, the Standard/Extended Therapy choice. No
-        // confirmation prompt -- nothing in the office is lost by leaving.
+        // Computer -> the session prompt (startSession, above), which can
+        // always be backed out of. Also "turn on computer" / "use
+        // computer", below.
         (if(not (send pEvent:claimed))
             (if(== (send pEvent:type) evMOUSEBUTTON)
                 (if((>= (send pEvent:x) COMPUTER_X1) and (< (send pEvent:x) COMPUTER_X2))
                     (if((>= (send pEvent:y) COMPUTER_Y1) and (< (send pEvent:y) COMPUTER_Y2))
                         (send pEvent:claimed(TRUE))
-                        (send gRoom:newRoom(SESSION_ROOM))
+                        (self:startSession())
                     )
                 )
             )
@@ -304,7 +346,7 @@
             // Imperative Verb class in the vocab.
             (if((Said('turn<on/computer')) or (Said('use/computer')))
                 (send pEvent:claimed(TRUE))
-                (send gRoom:newRoom(SESSION_ROOM))
+                (self:startSession())
                 return
             )
             // The vocab's "leave" group also holds exit and walk.
