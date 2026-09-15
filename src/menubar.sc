@@ -118,7 +118,7 @@
 			)
 			(case MENU_RESETDATA
 				(if(Print(
-					  "This will permanently erase your Case Files record, Extended Therapy unlock, and saved name. This cannot be undone. Reset everything?"
+					  "This will permanently erase your Case Files record, Extended Therapy unlock, chosen appearance, and saved name. This cannot be undone. Reset everything?"
 					  #title "Reset All Data"
 					  #font gDefaultFont
 					  #button " Reset " 1

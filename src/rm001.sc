@@ -7,10 +7,12 @@
 
  T.R.S.: entry point for a run, not the turn loop -- one room per event
  (game.sh) means each of the 196 event rooms ends its own turn via
- EndTurn() (mechanisms.sc) and transitions directly to the next. This
- room just does the per-run reset and the Extended Therapy mode choice,
- then bootstraps the first turn through EndTurn() with gTurn pre-set to
- 0. Never revisited mid-run.
+ EndTurn() (mechanisms.sc) and transitions directly to the next.
+ Reached only from the office's computer (rm003.sc). This room just
+ does the per-run reset and, for returning players, the Standard/
+ Extended Therapy mode choice, then bootstraps the first turn through
+ EndTurn() with gTurn pre-set to 0. Never revisited mid-run. The
+ one-time setup questions (appearance, name) live in the office.
  ******************************************************************************/
 (include "sci.sh")
 (include "game.sh")
@@ -29,9 +31,6 @@
 (use "dpath")
 (use "printchoices")
 (use "mechanisms")
-(use "casefiles")
-(use "casefilecategory")
-(use "playernameprompt")
 /******************************************************************************/
 (instance public rm001 of Rm
 	(properties
@@ -44,20 +43,15 @@
 	)
 	(method (init)
 		(var newSessionPromptBuf[72], newSessionTitleBuf[16],
-			standardBtnBuf[32], extendedBtnBuf[48], extendedTitleBuf[24],
-			viewCaseFiles, caseFileChoice, caseFilesReviewPromptBuf[96],
-			caseFilesReviewTitleBuf[16], caseFilesReviewYesBuf[16],
-			caseFilesReviewNoBuf[16], playerNameBuf[PLAYER_NAME_BUF_LEN])
+			standardBtnBuf[32], extendedBtnBuf[48], extendedTitleBuf[24])
 		// same in every script, starts things up
   		(super:init())
   		(self:setScript(RoomScript))
 
-  		// Reset per-run state -- runs through here on every path that
-  		// starts/restarts a run (title screen, "Restart Game", and
-  		// rm002.sc's clickable computer, which uses a plain newRoom()
-  		// with no other reset). Deliberately does NOT touch
-  		// gCF0..107/gNgPlusUnlocked -- those are the persistent,
-  		// cross-run record.
+  		// Reset per-run state -- every run starts here, from the office's
+  		// computer (rm003.sc). Deliberately does NOT touch the Case Files
+  		// slots, gNgPlusUnlocked or gPortraitChoice -- those are the
+  		// persistent, cross-run record.
   		= gRepression STARTING_REPRESSION
   		= gMask STARTING_MASK
   		= gChild STARTING_CHILD
@@ -102,90 +96,9 @@
 		ProgramControl()
 		(send gEgo:hide())
 
-		// Background music, sound resource 3, gm.drv/General MIDI (see
-		// resource.cfg). stop() first so a restart never layers tracks.
-		// Sound objects persist across room transitions once started.
-		(send gTheMusic:
-			prevSignal(0)
-			stop()
-			number(3)
-			loop(-1)
-			play()
-		)
-
-		// Appearance choice -- same reasoning as the Extended Therapy
-		// choice below: asked here (top of every run) rather than
-		// TitleScreen.sc, since "Restart Game" skips the title screen
-		// and jumps straight here. Unconditional (not gated behind
-		// gNgPlusUnlocked) -- every run gets to pick.
-		= gPortraitChoice PromptPortraitChoice()
-
-		// Player name -- optional, asked only the very first time (an
-		// empty stored name), not every run: matches the original's
-		// "remembered for next time" rather than re-nagging on every
-		// restart/back-to-back run. Reset Data (menubar.sc) blanks the
-		// stored name, which naturally re-triggers this next run.
-		// PromptPlayerName is Load/Dispose-scoped, not always resident --
-		// see PlayerNamePrompt.sc's header for why (a real, confirmed
-		// heap-fragmentation regression from an earlier version of this
-		// that put it in always-resident printchoices.sc instead).
-		GetPlayerName(@playerNameBuf)
-		(if(not StrLen(@playerNameBuf))
-			Load(rsSCRIPT PLAYERNAMEPROMPT_SCRIPT)
-			PromptPlayerName(@playerNameBuf)
-			DisposeScript(PLAYERNAMEPROMPT_SCRIPT)
-			SetPlayerName(@playerNameBuf)
-		)
-
-		// Case Files review -- offered to returning players (same
-		// gNgPlusUnlocked signal as the Extended Therapy choice below:
-		// they've survived a run before, so they have something to look
-		// back on) before jumping into a new run. Reuses ShowCaseFiles()/
-		// ShowCaseFileCategory() verbatim -- same two-stage Load/Dispose
-		// as menubar.sc's MENU_CASEFILES handler and rm002.sc's filing
-		// cabinet (CaseFiles.sc and CaseFileCategory.sc must never both
-		// be resident, see CaseFileCategory.sc's header). Text read from
-		// TEXT_UI (see game.sh) same as the Extended Therapy prompt
-		// below, not embedded as literals.
-		(if(gNgPlusUnlocked)
-			Load(rsTEXT TEXT_UI)
-			GetFarText(TEXT_UI TEXT_UI_CASEFILES_REVIEW_PROMPT @caseFilesReviewPromptBuf)
-			GetFarText(TEXT_UI TEXT_UI_CASEFILES_REVIEW_TITLE @caseFilesReviewTitleBuf)
-			GetFarText(TEXT_UI TEXT_UI_CASEFILES_REVIEW_YES_BTN @caseFilesReviewYesBuf)
-			GetFarText(TEXT_UI TEXT_UI_CASEFILES_REVIEW_NO_BTN @caseFilesReviewNoBuf)
-			= viewCaseFiles PrintChoices(
-				@caseFilesReviewPromptBuf
-				@caseFilesReviewTitleBuf
-				290
-				NULL
-				@caseFilesReviewYesBuf TRUE
-				@caseFilesReviewNoBuf FALSE
-			)
-			(if(viewCaseFiles)
-				Load(rsSCRIPT CASEFILES_SCRIPT)
-				= caseFileChoice ShowCaseFiles()
-				DisposeScript(CASEFILES_SCRIPT)
-				(if(caseFileChoice)
-					Load(rsSCRIPT CASEFILECATEGORY_SCRIPT)
-					(if(== caseFileChoice 1)
-						ShowCaseFileCategory(CASEFILE_SURVIVAL_BASE CASEFILE_SURVIVAL_COUNT "Survival Endings")
-					)
-					(if(== caseFileChoice 2)
-						ShowCaseFileCategory(CASEFILE_FAILURE_BASE CASEFILE_FAILURE_COUNT "Failure Endings")
-					)
-					(if(== caseFileChoice 3)
-						ShowCaseFileCategory(CASEFILE_MECH_BASE CASEFILE_MECH_COUNT "Coping Mechanisms")
-					)
-					DisposeScript(CASEFILECATEGORY_SCRIPT)
-				)
-			)
-		)
-
-		// Extended Therapy mode choice -- asked here (top of every run)
-		// rather than TitleScreen.sc, since "Restart Game" skips the
-		// title screen and jumps straight here. Fixed, hand-authored text
-		// (not part of the content pipeline) -- read from TEXT_UI (see
-		// game.sh) rather than embedded as literals.
+		// Extended Therapy mode choice -- returning players only; new
+		// players go straight into a standard 10-turn run. Fixed,
+		// hand-authored text read from TEXT_UI (see game.sh), not literals.
 		(if(gNgPlusUnlocked)
 			Load(rsTEXT TEXT_UI)
 			GetFarText(TEXT_UI TEXT_UI_NEWSESSION_PROMPT @newSessionPromptBuf)

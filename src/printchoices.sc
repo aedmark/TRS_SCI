@@ -186,8 +186,8 @@
 )
 /******************************************************************************/
 (procedure public (PromptPortraitChoice)
-	// Appearance picker, asked once per run from rm001.sc's init()
-	// alongside the other per-run setup choices (see gHardMode there).
+	// Appearance picker, asked once ever by the office (rm003.sc), then only from its mirror
+	// -- the choice persists as Case Files slot CASEFILE_PORTRAIT.
 	// Portraits are fixed at PORTRAIT_ICON_WIDTHxPORTRAIT_ICON_HEIGHT
 	// (game.sh) -- too tall to stack PORTRAIT_COUNT of them vertically
 	// within the 200px screen the way PrintChoices stacks text buttons,

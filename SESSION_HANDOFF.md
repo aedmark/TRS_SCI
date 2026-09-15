@@ -110,16 +110,16 @@ original's own `js/codex.js` grouping) opens a scrollable per-category
 list; selecting a discovered entry and clicking "View" shows its full
 title+description, a sealed entry shows "Sealed. Not yet discovered."
 Persists cross-session to `TRSCASE.DAT` (repo root, gitignored). Reachable via the
-"Case Files" menu item (`` `^f ``) or by clicking the filing cabinet in
-the ending room. **Confirmed fully working end to end**, including a
+"Case Files" menu item (`` `^f ``) or the filing cabinet in the office
+(click it, or type "open cabinet"). **Confirmed fully working end to end**, including a
 real "Out of heap space" bug on its "View" feature that took two rounds
 to actually fix (see Architecture → Load/Dispose discipline below for
 the current, confirmed-working shape of it).
 
 **Extended Therapy (New Game+)**: matches the original's real, existing
 feature under that name (not invented for this port) — survive one
-standard run and it unlocks permanently (tracked as a hidden 108th Case
-Files slot); every future run then offers a Standard (10 turns) vs.
+standard run and it unlocks permanently (tracked as hidden Case Files
+slot 107); every future session then offers a Standard (10 turns) vs.
 Extended Therapy (20 turns, every stat swing scaled ×1.25, including
 mechanism modifiers and the glitch wildcard) choice at `rm001.sc`'s
 `init()`. Confirmed working end to end, including a full 20-turn run.
@@ -131,22 +131,23 @@ loops per option (neutral/repression/mask/child, switching away from
 neutral once the worst stat's danger value crosses
 `PORTRAIT_NEUTRAL_THRESHOLD`=60). `PORTRAIT_VIEW_0..3` (801-804, game.sh)
 — one full mood set per option, `gPortraitChoice` (Main.sc) holds which
-one, chosen fresh every run via `PromptPortraitChoice()`
-(printchoices.sc) at the same point `rm001.sc` asks the Extended Therapy
-question. Placeholder art is fixed at 80x60, which is too tall to stack
+one, picked via `PromptPortraitChoice()` (printchoices.sc). **Changed
+2026-09-14 — not yet compiled or playtested (Open Items #7):** no longer
+asked every run. The office asks once, before any other question, and
+the choice persists as Case Files slot 108 (`CASEFILE_PORTRAIT`, see the
+index scheme below); after that only "look mirror" in the office
+reopens the picker. Placeholder art is fixed at 80x60, which is too tall to stack
 4-high on the 200px screen the way `PrintChoices` stacks text buttons —
 the picker instead lays 2 options per page out horizontally, paginated
 with the same More/Back buttons `PrintChoices` uses. **Confirmed working
 by the user.** Real art (beyond placeholders) not yet done.
 
-**Case Files review for returning players**: `rm001.sc`'s per-run setup
-now also offers "review your case files before starting a new session?"
-(Yes/No, `TEXT_UI` entries 16-19) gated on `gNgPlusUnlocked` — the same
-signal already used for the Extended Therapy choice, i.e. "has survived
-a run before," not "has ever launched the game." Reuses
-`ShowCaseFiles()`/`ShowCaseFileCategory()` verbatim, same two-stage
-Load/Dispose sequence menubar.sc's menu item and rm002.sc's filing
-cabinet already used.
+**Case Files review for returning players — removed 2026-09-14.**
+`rm001.sc` used to ask returning players "review your case files before
+starting a new session?" (Yes/No, `TEXT_UI` entries 16-19). The office
+hub (below) replaced it: the filing cabinet is right there, and the
+user didn't want questions thrown at players before a session. Entries
+16-19 are still in `TEXT_UI`, but nothing reads them any more.
 
 **Player name (optional) and Reset All Data — confirmed working.**
 Matches the original's "remembered for next time" name field and
@@ -154,13 +155,14 @@ Matches the original's "remembered for next time" name field and
 `GetPlayerName` (persisted to their own `TRSNAME.DAT`, lazily loaded on
 first access rather than a boot-time call from `Main.sc` — deliberately,
 to avoid a brand-new circular `(use ...)` pair with `Main.sc` that
-couldn't be test-compiled ahead of time). `rm001.sc` prompts for a name
-only when none is stored yet (not every run) via `PromptPlayerName`
+couldn't be test-compiled ahead of time). The office (`rm003.sc`; `rm001.sc` before
+the hub change) prompts for a name only when none is stored yet (not every run) via `PromptPlayerName`
 (`PlayerNamePrompt.sc`); `rm002.sc` prints "Played by X" on the ending
 screen, skipped if blank. `menubar.sc`'s new "Reset Data" File-menu item
 (confirm-gated like Restart/Quit already were) calls `CaseFiles.sc`'s
-new `ResetAllData()` (zeroes all 108 Case Files slots, which also covers
-the Extended Therapy unlock since it rides the same array) and blanks
+new `ResetAllData()` (zeroes every Case Files slot, which also covers
+the Extended Therapy unlock and the chosen appearance, since both ride
+the same array) and blanks
 the player name. `PromptPlayerName` is deliberately its own Load/Dispose-
 scoped script, not living in the always-resident `printchoices.sc` where
 it was first written — see the heap-fragmentation entry right below for
@@ -229,31 +231,46 @@ CHILD: 60 %`. (Bar-graph gauge visuals were tried and reverted twice —
 see Findings below for the actual dialect-level bug that kept breaking
 them — the numeric-percent format is the final, shipped form.)
 
-**Clickable office objects** (ending room, `rm002.sc`): the filing
-cabinet opens Case Files, the computer starts a fresh run
-(`newRoom(INITROOMS_SCRIPT)` + a manual per-run stat/mechanism reset in
-`rm001.sc`'s `init()` — deliberately not a full kernel `RestartGame()`).
-Both hit-tested via hand-estimated screenshot rectangles
-(`CABINET_X1/Y1/X2/Y2`, `COMPUTER_X1/Y1/X2/Y2` in `game.sh`) — confirmed
-working, rectangles never needed adjustment.
+**The office hub (`rm003.sc`, `OFFICE_ROOM`) — built 2026-09-14, not yet
+compiled or playtested (Open Items #7).** Designed with the user so
+nobody gets dropped straight into the event cards. Boot and "Restart
+Game" (`initrooms.sc`) land in the office, and so does every finished
+run once `rm002.sc` has shown its ending cards (its `init()` now ends
+with `newRoom(OFFICE_ROOM)`; both rooms use picture 1, so the hand-off
+redraws the same image). The office's only questions are one-time:
+appearance first, then the optional name. A fresh arrival (anything but
+coming back from `ENDING_ROOM`, per `gPreviousRoomNumber`, which
+`Game.sc` sets to the room just left) also starts the music and prints
+a short welcome pointing at the computer. From there the player can
+stay as long as they like: the filing cabinet opens Case Files, and the
+computer — click, "turn on computer", or "use computer" — goes to
+`rm001.sc` (`SESSION_ROOM`) for the per-run reset. New players go
+straight into a standard 10-turn run; returning players
+(`gNgPlusUnlocked`) choose Standard or Extended Therapy. Both hotspots
+are hit-tested via the hand-estimated `CABINET_X1/Y1/X2/Y2` and
+`COMPUTER_X1/Y1/X2/Y2` rectangles in `game.sh` (confirmed working when
+they lived in `rm002.sc`; never needed adjustment). The computer used to
+go through `newRoom(INITROOMS_SCRIPT)`; that now leads to the office, so
+it goes to `SESSION_ROOM` directly.
 
-**Text parser ("examine" flavor text, ending room only) — confirmed
+**Text parser (office flavor text, office only) — confirmed
 working end to end after several real, non-obvious bugs.** The stock
 SCI0 text parser existed in this project as pure dead scaffolding
 before this session (`rm001.sc`/`rm002.sc` each had a single bare
 `Said('look')` that could never actually fire — see below). Scope,
 confirmed with the user directly: pure atmosphere, no stat/state
-effects; active **only** in `rm002.sc` (`ENDING_ROOM`), not during the
-196 per-turn event rooms. Originally `look`/`examine`/`x` over eight
+effects; active **only** in the office (`rm002.sc` until the
+2026-09-14 hub change moved it to `rm003.sc`), not during the 196
+per-turn event rooms. Originally `look`/`examine`/`x` over eight
 nouns. **Expanded 2026-09-14 — also confirmed working by the user,
 first compile:** ~20 look targets plus open/leave/sit/turn/breathe/wait/
 listen/smell/take/hug/talk/help, and a room-level catch-all reply for
 anything that parses but matches nothing (replacing `Game:pragmaFail`'s
-stock "You've left me responseless." in practice). "open cabinet" is the
-one verb that does anything — the same Case Files viewer a click opens,
-shared via `RoomScript:openCaseFiles`. All replies live in `TEXT_OFFICE`
+stock "You've left me responseless." in practice). "open cabinet" and
+"turn on computer" do what a click already does (Case Files, a new
+session), and "look mirror" reopens the appearance picker. All replies live in `TEXT_OFFICE`
 (see "Parser text lives in `text/office.txt`" below), not string
-literals, because `rm002.sc` stays resident under the Case Files viewer,
+literals, because the office room stays resident under the Case Files viewer,
 whose heap margin is the tightest in the game. **The text is the spec
 for what's in the room**: the user repaints the office art to match it
 (clock, door and mirror aren't in `art/images/room1.jpeg` yet).
@@ -330,7 +347,7 @@ Real bugs found and fixed, in order:
      early-return sequence; per the kernel docs a *failed* `Said()`
      doesn't consume anything (only a successful match does), so `>`
      isn't needed at all this way. This is now the confirmed-working
-     shape — see `rm002.sc`'s `RoomScript:handleEvent`.
+     shape — see `rm003.sc`'s `RoomScript:handleEvent`.
    Diagnosis method: same as the Case Files heap saga below — Alt+M
    doesn't help here either (no heap question involved), but inline
    debug `Print()` checkpoints (confirming step-by-step whether the
@@ -342,7 +359,8 @@ Real bugs found and fixed, in order:
 
 **Background music**: a General MIDI driver (`gm.drv`) is wired up and a
 real MIDI file has been imported into sound resource 3 (`n003=BGM`),
-looping continuously via `rm001.sc`. **Still has an open, unresolved
+looping continuously; the office (`rm003.sc`) starts it on a fresh
+arrival (`rm001.sc` did before the hub change). **Still has an open, unresolved
 audio-fidelity issue** — see Open Items below.
 
 ## Architecture reference
@@ -420,7 +438,7 @@ bugs this project has hit:
   this for free, and forgetting it is the single most common way heap
   problems have recurred throughout this project.
 
-**Case Files flat index scheme** (`game.sh`, `CASEFILE_COUNT`=108):
+**Case Files flat index scheme** (`game.sh`, `CASEFILE_COUNT`=109):
 - `0-71`: 9 survival pools × 8 variants (pool N = indices `N*8..N*8+7`)
 - `72-101`: 3 failure pools × 10 variants, repression/mask/child order
   (pool N = indices `72+N*10..72+N*10+9`)
@@ -430,7 +448,14 @@ bugs this project has hit:
   case file, rides on this same array purely because it's the one
   proven persistence mechanism in this codebase. `VIEWABLE_CASEFILE_COUNT`
   (107) keeps the viewer from showing it as a bogus 108th entry.
-- Backed by 108 separate scalar globals (`gCF0..gCF107` in `Main.sc`),
+- `108`: the player's chosen appearance (`CASEFILE_PORTRAIT`), stored as
+  `gPortraitChoice`+1 so 0 means never chosen. Not a `gCF` global:
+  `CaseFileAccess.sc`'s case 108 reads/writes `gPortraitChoice` directly,
+  so `LoadCaseFiles`/`SaveCaseFiles`/`ResetAllData` cover it with no
+  extra code. An older 108-line `TRSCASE.DAT` reads slot 108 as 0:
+  `LoadCaseFiles` clears its line buffer before each `FGets`, since a
+  read past end of file may otherwise leave the previous line there.
+- Slots 0-107 are backed by 108 separate scalar globals (`gCF0..gCF107` in `Main.sc`),
   **not an array** — a global array declared in `Main.sc` isn't visible
   from another script the way scalars are (see Findings below).
   `GetCaseFile`/`SetCaseFile` (`CaseFileAccess.sc`) give array-like
@@ -483,7 +508,7 @@ once touched, same as `Main.sc`'s own `Load(rsVIEW PORTRAIT_VIEW)`. The
 16 entries are populated in SCI Companion's Text Editor and this is
 confirmed compiling and working end to end.
 
-**Parser text lives in `text/office.txt`, built into a loose `text.002`
+**Parser text lives in `text/office.txt`, built into a loose `text.003`
 patch file — confirmed working by the user (2026-09-14, first compile).** SCI0
 loads a resource straight from a loose patch file in the game folder, and
 SCI Companion lists those in its Game Explorer too
@@ -492,18 +517,19 @@ SCI Companion lists those in its Game Explorer too
 bit set), a `0` extra-header-length byte, then each entry NUL-terminated
 in index order. `node tools/gen-text.js` (this repo) turns every
 `text/*.txt` into its patch file plus a generated `src/<name>.sh` of index
-constants (`officetext.sh`: `TEXT_OFFICE` = 2, matching the room number
-per Sierra convention, and `TXT_OFFICE_*`), then reads the patch back to
+constants (`officetext.sh`: `TEXT_OFFICE` = 3, matching the office's
+room number per Sierra convention — it was 2 while the parser lived in
+`rm002.sc` — and `TXT_OFFICE_*`), then reads the patch back to
 verify it. Rules:
 - Edit the `.txt` and re-run — never the resource in SCI Companion's Text
   editor, which saves a second, packaged copy that the loose file
   silently overrides at runtime.
 - `game.ini` saves to the package, not patch files, so "Rebuild
-  Resources" leaves `text.002` alone.
-- A distribution zip must ship `text.002` next to
+  Resources" leaves `text.003` alone.
+- A distribution zip must ship `text.003` next to
   `resource.map`/`resource.001`.
 - Appending entries is always safe; reordering or deleting shifts indices,
-  which only needs a recompile of `rm002.sc`.
+  which only needs a recompile of `rm003.sc`.
 - Unlike a script string literal, a double quote is fine in this text.
 - `CaseFiles.sc`(107, persistence + category menu) + `CaseFileCategory.sc`
   (141, the per-category browsing/View screen) + `CaseFileAccess.sc`(136)
@@ -519,10 +545,15 @@ verify it. Rules:
   scoped around the one time per session (if any) it's actually shown.
 - `EndingSurvival0-8.sc`(162-170) / `EndingFailure0-2.sc`(171-173) — one
   file per ending pool, generated.
-- `rm001.sc`(1) — per-run reset, Extended Therapy mode-choice dialog,
-  bootstraps the first turn via `EndTurn()`. Never revisited mid-run.
-- `rm002.sc`(2) — the ending room: prints the ending, filing
-  cabinet/computer hotspots.
+- `rm001.sc`(1, `SESSION_ROOM`) — per-run reset, Extended Therapy
+  mode-choice dialog (returning players only), bootstraps the first turn
+  via `EndTurn()`. Reached only from the office's computer; never
+  revisited mid-run.
+- `rm002.sc`(2, `ENDING_ROOM`) — prints the ending cards, then hands off
+  to the office.
+- `rm003.sc`(3, `OFFICE_ROOM`) — the office hub: the one-time appearance
+  and name questions, the filing cabinet/computer hotspots, the text
+  parser, and the mirror.
 - `rm200`-`rm395` — the 196 generated event rooms.
 - `game.sh` / `game.ini` — constants and the resource manifest,
   respectively. Every new script needs an entry in **both**.
@@ -555,6 +586,11 @@ after editing the relevant `js/content*.js` source.
 - **Seeded runs**: SCI0-side seeds only; not required to match seeds from
   the browser version (the original's mulberry32 RNG is 32-bit and
   doesn't port cleanly to SCI0's 16-bit arithmetic).
+- **The office is the hub** (2026-09-14, the user's call): nobody is
+  dropped straight into the event cards, and nothing is asked before a
+  session beyond the one-time setup (appearance, then name). The
+  appearance persists; only the office mirror changes it. Sessions start
+  only from the office's computer.
 - **Permanently cut, not deferred**: runtime-loadable content packs /
   `editor.html` (SCI0 compiles everything at build time), Share Result
   PNG / mobile share sheet (no such OS concept on DOS), ScummVM as a test
@@ -771,7 +807,7 @@ after editing the relevant `js/content*.js` source.
   branch (`Said('verbgroup/noun')`), tried as a flat sequence of
   independent `if`s with early `return` on match — per the kernel docs
   a *failed* `Said()` doesn't consume/claim anything (only a successful
-  match does), so no `>` is needed for this shape at all. See `rm002.sc`'s
+  match does), so no `>` is needed for this shape at all. See `rm003.sc`'s
   `RoomScript:handleEvent` for the confirmed-working shape.
 - **A word compiling successfully in a `Said()` string only proves it
   exists in `vocab.000` — not that it has the word class the sentence
@@ -954,22 +990,46 @@ after editing the relevant `js/content*.js` source.
 6. ~~Office parser expansion~~ — **done**, compiled and confirmed by the
    user on the first try, including the generated `officetext.sh`
    include (so a generated `.sh` in `src/` resolves fine). Regression
-   checklist if this area changes, in the ending room: bare `look` and `look at <noun>` for each noun in
-   `rm002.sc`'s `RoomScript`; `open cabinet` → Case Files, then View a
+   checklist if this area changes, in the office: bare `look` and `look
+   at <noun>` for each noun in `rm003.sc`'s `RoomScript`; `open cabinet` → Case Files, then View a
    file (the heap-sensitive path); `open drawer`, `sit`, `breathe`, `take
    a breath`, `turn off lamp`, `help`; something that parses but isn't
    handled (`kick desk`) → the FALLBACK line; an unknown word → the stock
    "I don't understand" (unchanged). If every office reply fails at once,
-   suspect `text.002` not being picked up rather than the `Said()`
+   suspect `text.003` not being picked up rather than the `Said()`
    patterns.
+7. **Office hub — compile and playtest pending.** Before compiling:
+   (a) if `rm003` doesn't show in SCI Companion's Scripts panel despite
+   its `game.ini` entry, create it via "New empty script" and paste the
+   file back (see Findings); (b) in the Vocabulary editor, give `use` the
+   **Imperative Verb** class (right-click → checkbox, Wine-safe) — until
+   then "use computer" gets "That doesn't appear to be a proper
+   sentence." Then Compile All and Rebuild Resources. Checklist:
+   - Fresh save (move `TRSCASE.DAT`/`TRSNAME.DAT` aside) → title →
+     portrait picker first, then name, then the welcome, all in the
+     office.
+   - Click the computer → straight into a 10-turn run, no mode question.
+   - Finish → ending cards → back in the office, with no welcome and the
+     music not restarting.
+   - `look mirror` → picker; pick a different one and check the event
+     dialogs use it. Quit and relaunch → not asked again.
+   - Survive a run, then click the computer → Standard/Extended choice.
+   - `turn on computer` starts a session; `turn off computer` must not.
+     This is the codebase's first `<` in a `Said()` — if "turn on
+     computer" gets the FALLBACK line instead, that operator doesn't
+     work in this build.
+   - Restart Game → office. Reset Data, finish a run → the office asks
+     appearance and name again.
+   - An existing pre-change save keeps its Case Files and just asks for
+     the appearance once.
 
 ## Future ideas (not started, no urgency)
 
-- **Generate `vocab.000` the same way `text.002` is built** — would replace
+- **Generate `vocab.000` the same way `text.003` is built** — would replace
   the Wine-broken "New word" workaround (Findings) with a word list in the
   repo, classes and all. The format is simple and already decoded once
   (class bits per `Vocab000.h`: Noun `0x100`, Imperative Verb `0x800`,
-  etc.). Unlike text 2, though, vocab 0 already exists in the package, so
+  etc.). Unlike the office text, though, vocab 0 already exists in the package, so
   it'd need either an explicit "Import patch file" step or confirming which
   copy SCI Companion's compiler reads when both exist — and a byte-for-byte
   round-trip of the current vocab before trusting any additions.

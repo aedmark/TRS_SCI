@@ -60,7 +60,7 @@
 	gMaxTurns = DEFAULT_MAX_TURNS	/* set per-run in rm001.sc's init() */
 	gHardMode = FALSE		/* Extended Therapy, chosen per-run in rm001.sc; not itself persisted, see gNgPlusUnlocked */
 	gNgPlusUnlocked = FALSE	/* permanently TRUE once a standard run has ever survived -- mirrors gCF107/CASEFILE_NGPLUS, synced in Template:init() */
-	gPortraitChoice = 0	/* which of PORTRAIT_VIEW_0..3 (game.sh) the player is; chosen per-run in rm001.sc, same lifecycle as gHardMode */
+	gPortraitChoice = -1	/* which of PORTRAIT_VIEW_0..3 (game.sh) the player is, -1 until first chosen; persisted as Case Files slot CASEFILE_PORTRAIT (CaseFileAccess.sc maps that slot onto this global), asked in the office (rm003.sc) */
 
 	/* Coping-mechanism tracking: same-tag choices made this run, and
 	   whether it's permanently unlocked (UNLOCK_THRESHOLD -- see

@@ -37,6 +37,12 @@
 (define OBJ_SCRIPT			999)
 
 // Game Scripts
+// Rooms outside the per-event range: SESSION_ROOM (rm001.sc) starts a
+// run, ENDING_ROOM (rm002.sc) shows its ending cards, and OFFICE_ROOM
+// (rm003.sc) is the hub that boot, "Restart Game" and every ending
+// land in -- its computer is the only way into SESSION_ROOM.
+(define SESSION_ROOM		1)
+(define OFFICE_ROOM			3)
 (define TITLESCREEN_SCRIPT	800)
 (define ENDING_ROOM			2)
 (define PRINTCHOICES_SCRIPT	100)
@@ -122,7 +128,7 @@
 (define ENDINGFAILURE1_SCRIPT	172)
 (define ENDINGFAILURE2_SCRIPT	173)
 
-// Case Files: 108 flat discovery-flag indices, backed by scalar globals
+// Case Files: 109 flat indices, 0-107 backed by scalar globals
 // gCF0..gCF107 (Main.sc), not an array -- a global array in Main.sc
 // isn't visible from other scripts the way scalars are. GetCaseFile/
 // SetCaseFile (CaseFileAccess.sc) give array-like access over them.
@@ -137,13 +143,20 @@
 //          case file, rides here as the one proven persistence
 //          mechanism in this codebase. VIEWABLE_CASEFILE_COUNT excludes
 //          it from the viewer.
-(define CASEFILE_COUNT				108)
+//   108    the player's chosen appearance (CASEFILE_PORTRAIT), stored
+//          as gPortraitChoice+1 so 0 means never chosen.
+//          CaseFileAccess.sc maps it straight onto gPortraitChoice
+//          rather than a gCF global. Also outside the viewer. Added
+//          after 107, so an older 108-line TRSCASE.DAT just reads it
+//          as 0 (see LoadCaseFiles).
+(define CASEFILE_COUNT				109)
 (define VIEWABLE_CASEFILE_COUNT	107)
 (define CASEFILE_MECH_BASE			102)
 (define CASEFILE_NGPLUS			107)
+(define CASEFILE_PORTRAIT		108)
 
 // Player name -- optional, persisted to its own file (TRSNAME.DAT,
-// mechanisms.sc), separate from Case Files. Asked once (rm001.sc, only
+// mechanisms.sc), separate from Case Files. Asked once (the office, rm003.sc, only
 // when blank) rather than every run; menubar.sc's Reset Data clears it
 // back to blank. PLAYER_NAME_BUF_LEN is MAX_LEN + 1 for the null
 // terminator (kept a separate literal, not an in-place "+1" expression,
@@ -322,9 +335,9 @@
 // SCI0."). Deliberately NOT applied to the 196 generated events' worth
 // of content or the Case Files descriptions, which have their own
 // browser-repo tools/gen-*.js pipeline emitting script source. TEXT_UI
-// below is hand-typed in SCI Companion's Text editor. TEXT_OFFICE (2, the
-// ending room's parser replies) is instead built from text/office.txt by
-// this repo's tools/gen-text.js into a loose text.002 patch file, with its
+// below is hand-typed in SCI Companion's Text editor. TEXT_OFFICE (3, the
+// office's parser replies) is instead built from text/office.txt by
+// this repo's tools/gen-text.js into a loose text.003 patch file, with its
 // constants in the generated src/officetext.sh -- see that script's header.
 (define TEXT_UI		0)
 (define TEXT_UI_CASEFILES_TITLE			0)

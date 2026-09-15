@@ -65,7 +65,7 @@
 
 		(TheMenuBar:draw())
 		(SL:enable())
-		(send gRoom:newRoom(1))
+		(send gRoom:newRoom(OFFICE_ROOM))	// boot and Restart land in the office
   )
 )
 /******************************************************************************/

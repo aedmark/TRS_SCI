@@ -1,5 +1,5 @@
-# Office flavor text for the ending room (rm002.sc, ENDING_ROOM) -- what the
-# text parser prints for LOOK and the room's other verbs. Built into text.002
+# Office flavor text (rm003.sc, OFFICE_ROOM) -- the arrival line and what the
+# text parser prints for LOOK and the room's other verbs. Built into text.003
 # and src/officetext.sh by `node tools/gen-text.js`; edit this file and re-run
 # that, not the resource in SCI Companion's Text editor.
 #
@@ -7,15 +7,15 @@
 # reordering or deleting only needs a recompile of rm002.sc afterwards.
 # Plain ASCII, or curly quotes/dashes/ellipses (transliterated). Unlike a
 # script string literal, a double quote is fine here.
-@resource 2
+@resource 3
 @define TEXT_OFFICE
 @prefix TXT_OFFICE
 @header officetext.sh
 
 [LOOK_ROOM]
-A desk, a chair, a computer, a filing cabinet. A lamp, a window, a clock that
-hasn't stopped, and a door back out into the rest of your life. That's the
-whole office. That's supposed to be enough.
+A desk, a chair, a computer, a filing cabinet. A lamp, a window, a mirror, a
+clock that hasn't stopped, and a door back out into the rest of your life.
+That's the whole office. That's supposed to be enough.
 
 [LOOK_COMPUTER]
 The screen that ends a session and starts the next one. It has never once
@@ -111,8 +111,17 @@ There's no one here but you. That's allowed.
 
 [HELP]
 LOOK at anything that catches your eye, or try something else -- it's your
-office. OPEN the filing cabinet (or click it) to review your Case Files. Click
-the computer to begin another session.
+office, and there's no hurry. OPEN the filing cabinet (or click it) to review
+your Case Files. When you're ready, click the computer or TURN it ON to begin a
+session.
 
 [FALLBACK]
 That's not something you need to do right now.
+
+[ARRIVE]
+Your office. Nothing is due, and nobody is waiting on you. Look around, sit for
+a while, breathe. When you're ready, the computer will start a session. (Type
+HELP if you're not sure what to do.)
+
+[LOOK_MIRROR]
+Your reflection looks back at you, patient. Is this who you are today?
