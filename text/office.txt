@@ -1,0 +1,118 @@
+# Office flavor text for the ending room (rm002.sc, ENDING_ROOM) -- what the
+# text parser prints for LOOK and the room's other verbs. Built into text.002
+# and src/officetext.sh by `node tools/gen-text.js`; edit this file and re-run
+# that, not the resource in SCI Companion's Text editor.
+#
+# An entry's index is its order in this file, so appending is always safe;
+# reordering or deleting only needs a recompile of rm002.sc afterwards.
+# Plain ASCII, or curly quotes/dashes/ellipses (transliterated). Unlike a
+# script string literal, a double quote is fine here.
+@resource 2
+@define TEXT_OFFICE
+@prefix TXT_OFFICE
+@header officetext.sh
+
+[LOOK_ROOM]
+A desk, a chair, a computer, a filing cabinet. A lamp, a window, a clock that
+hasn't stopped, and a door back out into the rest of your life. That's the
+whole office. That's supposed to be enough.
+
+[LOOK_COMPUTER]
+The screen that ends a session and starts the next one. It has never once
+asked if you're ready.
+
+[LOOK_CABINET]
+Every ending you've ever had, filed and alphabetized. It doesn't judge. It
+just remembers.
+
+[LOOK_CHAIR]
+Still warm. You just got up from it.
+
+[LOOK_DESK]
+Keyboard, lamp, a short stack of books. Everything within arm's reach. You
+arranged it that way on purpose.
+
+[LOOK_CLOCK]
+Running. It was running before you got here, too.
+
+[LOOK_DOOR]
+Closed. Nothing on the other side of it yet.
+
+[LOOK_SELF]
+You look like someone who just finished something. You're not sure what.
+
+[LOOK_WINDOW]
+Trees, and a patch of sky. Out there it's an ordinary day. It's allowed to be.
+
+[LOOK_OUTSIDE]
+Still there. Still growing, whether or not anyone's keeping an eye on it.
+
+[LOOK_LAMP]
+Angled at the work. It lights what you're looking at and nothing else. That's
+its whole job.
+
+[LOOK_BOOKS]
+Workbooks, mostly. The first three chapters of each one are filled in. Every
+one of them was going to be the one that fixed it.
+
+[LOOK_KEYBOARD]
+Worn smooth on the keys you use most. The Backspace key is nearly blank.
+
+[LOOK_DRAWERS]
+Desk drawers. You know what's in them. You put it there.
+
+[LOOK_FLOOR]
+Carpet. The path from the door to the chair is worn a shade lighter than the
+rest.
+
+[LOOK_WALLS]
+Institutional gray. Somebody picked this color on purpose. Nobody remembers
+why.
+
+[LOOK_OTHER]
+You don't see anything special about that.
+
+[OPEN_DRAWER]
+Pens that don't work, a stress ball, and a sticky note in your own
+handwriting: "YOU'RE DOING BETTER THAN YOU THINK." You don't remember writing
+it.
+
+[LEAVE]
+Not yet. It'll still be there when you're ready.
+
+[SIT]
+You settle into the chair. It isn't rest, exactly. It's close enough for now.
+
+[LAMP_SWITCH]
+Click. Off. Click. On again. Some things are easier to reset than others.
+
+[BREATHE]
+In for four. Hold for four. Out for four. The room is still here when you open
+your eyes.
+
+[WAIT]
+The clock keeps going. You don't have to.
+
+[LISTEN]
+The hum of the computer. The clock. Your own breathing, if you let yourself
+notice it.
+
+[SMELL]
+Old paper and warm electronics. Nothing in here wants anything from you.
+
+[TAKE]
+You've carried enough out of here already.
+
+[HUG_SELF]
+You wrap your arms around yourself. It feels awkward. Do it anyway.
+
+[TALK]
+There's no one here but you. That's allowed.
+
+[HELP]
+LOOK at anything that catches your eye, or try something else -- it's your
+office. OPEN the filing cabinet (or click it) to review your Case Files. Click
+the computer to begin another session.
+
+[FALLBACK]
+That's not something you need to do right now.

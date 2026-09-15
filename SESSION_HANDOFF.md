@@ -243,16 +243,20 @@ SCI0 text parser existed in this project as pure dead scaffolding
 before this session (`rm001.sc`/`rm002.sc` each had a single bare
 `Said('look')` that could never actually fire — see below). Scope,
 confirmed with the user directly: pure atmosphere, no stat/state
-effects; `look`/`examine`/`x` only; active **only** in `rm002.sc`
-(`ENDING_ROOM`), not during the 196 per-turn event rooms. Eight nouns
-wired up so far (computer, cabinet, chair, desk, clock, door,
-mirror/me/self, plus a bare-verb room description and a generic
-"nothing special" catch-all for any other recognized noun) — all in
-`rm002.sc`'s `RoomScript:handleEvent`, no separate Load/Dispose-scoped
-script needed (unlike the Case Files content below, this can only ever
-fire while `rm002.sc` itself is already resident, so there's no
-"extra time loaded" to save by splitting it out; revisit only if this
-noun list grows large enough to bloat the room's own compiled size).
+effects; active **only** in `rm002.sc` (`ENDING_ROOM`), not during the
+196 per-turn event rooms. Originally `look`/`examine`/`x` over eight
+nouns. **Expanded 2026-09-14 — also confirmed working by the user,
+first compile:** ~20 look targets plus open/leave/sit/turn/breathe/wait/
+listen/smell/take/hug/talk/help, and a room-level catch-all reply for
+anything that parses but matches nothing (replacing `Game:pragmaFail`'s
+stock "You've left me responseless." in practice). "open cabinet" is the
+one verb that does anything — the same Case Files viewer a click opens,
+shared via `RoomScript:openCaseFiles`. All replies live in `TEXT_OFFICE`
+(see "Parser text lives in `text/office.txt`" below), not string
+literals, because `rm002.sc` stays resident under the Case Files viewer,
+whose heap margin is the tightest in the game. **The text is the spec
+for what's in the room**: the user repaints the office art to match it
+(clock, door and mirror aren't in `art/images/room1.jpeg` yet).
 Real bugs found and fixed, in order:
 1. **The parser input line never appeared at all.** `ProgramControl()`
    (called by `rm002.sc`'s `init()`, same as every other room) disables
@@ -463,11 +467,11 @@ narrowly: only `CaseFiles.sc`'s category menu, `CaseFileCategory.sc`'s
 prompt/View/Close/sealed-message text, and `rm001.sc`'s Extended Therapy
 mode-choice dialog — the small, fixed, hand-typed-once set of UI chrome.
 Deliberately **not** applied to the 196 generated events or the 107 Case
-File descriptions/titles: TEXT resources have no external source file,
-only SCI Companion's own GUI text editor (one string at a time, no batch
-import) — moving programmatically generated content there would
-permanently break the `tools/gen-*.js` regeneration pipeline for a few
-thousand strings. `Print()`'s stock implementation (`Controls.sc`)
+File descriptions/titles, which already have their own `tools/gen-*.js`
+pipeline emitting script source. (`TEXT_UI` itself exists only inside
+the resource package, typed into SCI Companion's Text editor one string
+at a time; the newer `TEXT_OFFICE` has a real source file instead — see
+the next entry.) `Print()`'s stock implementation (`Controls.sc`)
 already natively supports `Print(resNum textId ...)` in place of
 `Print("literal" ...)` when the first param is `<u 1000` — used directly
 where `Print()` was already the call; everywhere else (custom `Dialog`/
@@ -478,6 +482,29 @@ is never paired with a dispose (see Findings below for why
 once touched, same as `Main.sc`'s own `Load(rsVIEW PORTRAIT_VIEW)`. The
 16 entries are populated in SCI Companion's Text Editor and this is
 confirmed compiling and working end to end.
+
+**Parser text lives in `text/office.txt`, built into a loose `text.002`
+patch file — confirmed working by the user (2026-09-14, first compile).** SCI0
+loads a resource straight from a loose patch file in the game folder, and
+SCI Companion lists those in its Game Explorer too
+(`GameFolderHelper.cpp`). Format, per SCI Companion's own
+`PatchResourceSource.cpp`/`Text.cpp`: a `0x83` byte (text type 3, high
+bit set), a `0` extra-header-length byte, then each entry NUL-terminated
+in index order. `node tools/gen-text.js` (this repo) turns every
+`text/*.txt` into its patch file plus a generated `src/<name>.sh` of index
+constants (`officetext.sh`: `TEXT_OFFICE` = 2, matching the room number
+per Sierra convention, and `TXT_OFFICE_*`), then reads the patch back to
+verify it. Rules:
+- Edit the `.txt` and re-run — never the resource in SCI Companion's Text
+  editor, which saves a second, packaged copy that the loose file
+  silently overrides at runtime.
+- `game.ini` saves to the package, not patch files, so "Rebuild
+  Resources" leaves `text.002` alone.
+- A distribution zip must ship `text.002` next to
+  `resource.map`/`resource.001`.
+- Appending entries is always safe; reordering or deleting shifts indices,
+  which only needs a recompile of `rm002.sc`.
+- Unlike a script string literal, a double quote is fine in this text.
 - `CaseFiles.sc`(107, persistence + category menu) + `CaseFileCategory.sc`
   (141, the per-category browsing/View screen) + `CaseFileAccess.sc`(136)
   + `CaseFileTitles.sc`(137) + `CaseFileDescriptionsSurvival0-8.sc`
@@ -924,8 +951,28 @@ after editing the relevant `js/content*.js` source.
    was actually retested here, even though the margin recovered this
    session (per the debug readings taken mid-fix) looks meaningfully
    healthier than before.
+6. ~~Office parser expansion~~ — **done**, compiled and confirmed by the
+   user on the first try, including the generated `officetext.sh`
+   include (so a generated `.sh` in `src/` resolves fine). Regression
+   checklist if this area changes, in the ending room: bare `look` and `look at <noun>` for each noun in
+   `rm002.sc`'s `RoomScript`; `open cabinet` → Case Files, then View a
+   file (the heap-sensitive path); `open drawer`, `sit`, `breathe`, `take
+   a breath`, `turn off lamp`, `help`; something that parses but isn't
+   handled (`kick desk`) → the FALLBACK line; an unknown word → the stock
+   "I don't understand" (unchanged). If every office reply fails at once,
+   suspect `text.002` not being picked up rather than the `Said()`
+   patterns.
 
 ## Future ideas (not started, no urgency)
+
+- **Generate `vocab.000` the same way `text.002` is built** — would replace
+  the Wine-broken "New word" workaround (Findings) with a word list in the
+  repo, classes and all. The format is simple and already decoded once
+  (class bits per `Vocab000.h`: Noun `0x100`, Imperative Verb `0x800`,
+  etc.). Unlike text 2, though, vocab 0 already exists in the package, so
+  it'd need either an explicit "Import patch file" step or confirming which
+  copy SCI Companion's compiler reads when both exist — and a byte-for-byte
+  round-trip of the current vocab before trusting any additions.
 
 - **Real portrait art for the 4 selectable options** — see "Player
   portrait" above; the picker itself is built and confirmed working,

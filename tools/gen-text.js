@@ -1,0 +1,125 @@
+#!/usr/bin/env node
+// Builds SCI0 text resources from the plain-text sources in text/*.txt.
+//
+// Each source becomes a loose patch file in the game folder (text.NNN), which
+// both SCIV.EXE and SCI Companion load straight from disk, plus a
+// src/<header>.sh of (define ...) constants for its entry indices. With the
+// project saving to the resource package (game.ini has no SaveToPatchFiles),
+// "Rebuild Resources" leaves the patch file alone. Edit the .txt and re-run
+// this -- don't edit the resource in SCI Companion's Text editor: that saves
+// a second, packaged copy which the loose patch file silently overrides at
+// runtime. Ship the text.NNN files alongside resource.map/resource.001.
+//
+// Source format:
+//   # comment               ignored anywhere
+//   @resource 2             text resource number -> text.002
+//   @define TEXT_OFFICE     constant naming the resource number
+//   @prefix TXT_OFFICE      prefix for each entry's index constant
+//   @header officetext.sh   generated header, written into src/
+//   [LOOK_ROOM]             starts an entry; its index is its order in the file
+//   text...                 lines are joined with single spaces; a blank line
+//                           inside an entry becomes a line break
+'use strict';
+const fs = require('fs');
+const path = require('path');
+
+const repoRoot = path.resolve(__dirname, '..');
+const textDir = path.join(repoRoot, 'text');
+const srcDir = path.join(repoRoot, 'src');
+
+const RS_TEXT = 3; // SCI0 resource type number for text
+const MAX_LEN = 1012; // Controls.sc's Print() copies text into a msgBuf[1013]
+
+// Same transliterations as the browser repo's tools/lib/sci-string.js: a
+// non-ASCII byte isn't a missing glyph in SCI0, it's a raw control byte that
+// corrupts the dialog.
+const ASCII_TRANSLITERATIONS = {
+	'—': '-', '–': '-',
+	'‘': "'", '’': "'",
+	'“': '"', '”': '"',
+	'…': '...',
+};
+
+function parseSource(file) {
+	const meta = {};
+	const entries = [];
+	let cur = null;
+	fs.readFileSync(file, 'utf8').split(/\r?\n/).forEach((line, i) => {
+		const where = `${path.basename(file)}:${i + 1}`;
+		if (line.startsWith('#')) return;
+		let m;
+		if (!cur && (m = line.match(/^@(\w+)\s+(\S+)\s*$/))) {
+			meta[m[1]] = m[2];
+			return;
+		}
+		if ((m = line.match(/^\[([A-Z0-9_]+)\]\s*$/))) {
+			if (entries.some(e => e.name === m[1])) throw new Error(`${where}: duplicate entry [${m[1]}]`);
+			cur = { name: m[1], where, lines: [[]] };
+			entries.push(cur);
+			return;
+		}
+		if (!cur) {
+			if (line.trim()) throw new Error(`${where}: text before the first [ENTRY]`);
+			return;
+		}
+		const last = cur.lines[cur.lines.length - 1];
+		if (line.trim()) last.push(line.trim());
+		else if (last.length) cur.lines.push([]);
+	});
+
+	for (const key of ['resource', 'define', 'prefix', 'header']) {
+		if (!meta[key]) throw new Error(`${path.basename(file)}: missing @${key}`);
+	}
+	const resNum = Number(meta.resource);
+	if (!Number.isInteger(resNum) || resNum < 0 || resNum > 999) {
+		throw new Error(`${path.basename(file)}: @resource must be 0-999, got ${meta.resource}`);
+	}
+	if (!entries.length) throw new Error(`${path.basename(file)}: no entries`);
+
+	for (const e of entries) {
+		let s = e.lines.filter(l => l.length).map(l => l.join(' ')).join('\n');
+		s = s.replace(/[—–‘’“”…]/g, ch => ASCII_TRANSLITERATIONS[ch]);
+		if (!s) throw new Error(`${e.where}: [${e.name}] is empty`);
+		if (/[^\x20-\x7E\n]/.test(s)) throw new Error(`${e.where}: [${e.name}] has a non-ASCII character with no known transliteration`);
+		if (s.length > MAX_LEN) throw new Error(`${e.where}: [${e.name}] is ${s.length} chars, over Print()'s ${MAX_LEN}`);
+		e.text = s;
+	}
+	return { meta, resNum, entries };
+}
+
+function build(file) {
+	const { meta, resNum, entries } = parseSource(file);
+	const rel = path.relative(repoRoot, file);
+
+	// SCI0 patch file: type byte (high bit set), extra-header length, then the
+	// resource body -- for text, each entry NUL-terminated in index order.
+	const body = entries.map(e => Buffer.concat([Buffer.from(e.text, 'latin1'), Buffer.from([0])]));
+	const patch = Buffer.concat([Buffer.from([0x80 | RS_TEXT, 0]), ...body]);
+	const patchName = `text.${String(resNum).padStart(3, '0')}`;
+	const patchPath = path.join(repoRoot, patchName);
+	fs.writeFileSync(patchPath, patch);
+
+	// Read it back the way the interpreter will, to catch encoding mistakes here
+	// rather than in DOSBox.
+	const back = fs.readFileSync(patchPath);
+	const texts = back.subarray(2).toString('latin1').split('\0').slice(0, -1);
+	if (back[0] !== (0x80 | RS_TEXT) || back[1] !== 0 || texts.length !== entries.length || texts.some((t, i) => t !== entries[i].text)) {
+		throw new Error(`${patchName}: read-back doesn't match ${rel}`);
+	}
+
+	const width = Math.max(meta.define.length, ...entries.map(e => meta.prefix.length + 1 + e.name.length)) + 1;
+	const define = (name, value) => `(define ${name.padEnd(width)}${value})`;
+	const header = [
+		`// GENERATED by tools/gen-text.js from ${rel} -- edit that and re-run, not this.`,
+		define(meta.define, resNum),
+		...entries.map((e, i) => define(`${meta.prefix}_${e.name}`, i)),
+		'',
+	].join('\n');
+	fs.writeFileSync(path.join(srcDir, meta.header), header);
+
+	console.log(`${rel}: ${entries.length} entries -> ${patchName} (${patch.length} bytes), src/${meta.header}`);
+}
+
+const sources = fs.readdirSync(textDir).filter(f => f.endsWith('.txt')).sort();
+if (!sources.length) throw new Error(`no .txt sources in ${textDir}`);
+sources.forEach(f => build(path.join(textDir, f)));

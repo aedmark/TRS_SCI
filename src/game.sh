@@ -320,12 +320,12 @@
 // script bytecode (SCI Companion's own docs: "using them will reduce the
 // size of your compiled scripts. Heap space... is at a premium in
 // SCI0."). Deliberately NOT applied to the 196 generated events' worth
-// of content or the Case Files descriptions -- TEXT resources have no
-// external source file, only SCI Companion's own GUI text editor
-// (one string at a time, no batch import), so moving programmatically
-// generated content there would permanently break the tools/gen-*.js
-// regeneration pipeline for a few thousand strings. This is scoped to
-// the small, fixed, hand-typed-once set instead.
+// of content or the Case Files descriptions, which have their own
+// browser-repo tools/gen-*.js pipeline emitting script source. TEXT_UI
+// below is hand-typed in SCI Companion's Text editor. TEXT_OFFICE (2, the
+// ending room's parser replies) is instead built from text/office.txt by
+// this repo's tools/gen-text.js into a loose text.002 patch file, with its
+// constants in the generated src/officetext.sh -- see that script's header.
 (define TEXT_UI		0)
 (define TEXT_UI_CASEFILES_TITLE			0)
 (define TEXT_UI_CASEFILES_PROMPT			1)

@@ -12,6 +12,7 @@
  ******************************************************************************/
 (include "sci.sh")
 (include "game.sh")
+(include "officetext.sh")
 /******************************************************************************/
 (script ENDING_ROOM)
 /******************************************************************************/
@@ -73,6 +74,10 @@
 		// FALSE every frame, Main.sc:340) is never set TRUE anywhere in this
 		// codebase, so nothing re-disables it behind our back.
 		(User:canInput(TRUE))
+		// The parser's replies (see RoomScript). Never disposed, same as
+		// TEXT_UI -- and never via DisposeScript(), which only takes script
+		// numbers (see game.sh's TEXT_UI note).
+		Load(rsTEXT TEXT_OFFICE)
 
 		(self:printEnding())
 
@@ -197,36 +202,39 @@
 /******************************************************************************/
 (instance RoomScript of Script
 	(properties)
-	(method (handleEvent pEvent)
+	(method (openCaseFiles)
         (var choice)
+        // Two-stage Load/Dispose -- see CaseFileCategory.sc's header for why
+        // the menu and viewer scripts must never both be resident.
+        Load(rsSCRIPT CASEFILES_SCRIPT)
+        = choice ShowCaseFiles()
+        DisposeScript(CASEFILES_SCRIPT)
+        (if(choice)
+            Load(rsSCRIPT CASEFILECATEGORY_SCRIPT)
+            (if(== choice 1)
+                ShowCaseFileCategory(CASEFILE_SURVIVAL_BASE CASEFILE_SURVIVAL_COUNT "Survival Endings")
+            )
+            (if(== choice 2)
+                ShowCaseFileCategory(CASEFILE_FAILURE_BASE CASEFILE_FAILURE_COUNT "Failure Endings")
+            )
+            (if(== choice 3)
+                ShowCaseFileCategory(CASEFILE_MECH_BASE CASEFILE_MECH_COUNT "Coping Mechanisms")
+            )
+            DisposeScript(CASEFILECATEGORY_SCRIPT)
+        )
+	)
+	(method (handleEvent pEvent)
         (super:handleEvent(pEvent))
-        // Filing cabinet -> Case Files viewer. Nested ifs rather than one
-        // 5-term and-chain -- no precedent in this codebase for and-chains
-        // longer than 4.
+        // Filing cabinet -> Case Files viewer (also reachable by typing
+        // "open cabinet", below). Nested ifs rather than one 5-term
+        // and-chain -- no precedent in this codebase for and-chains longer
+        // than 4.
         (if(not (send pEvent:claimed))
             (if(== (send pEvent:type) evMOUSEBUTTON)
                 (if((>= (send pEvent:x) CABINET_X1) and (< (send pEvent:x) CABINET_X2))
                     (if((>= (send pEvent:y) CABINET_Y1) and (< (send pEvent:y) CABINET_Y2))
                         (send pEvent:claimed(TRUE))
-                        // Two-stage Load/Dispose -- see CaseFileCategory.sc's
-                        // header for why the menu and viewer scripts must
-                        // never both be resident.
-                        Load(rsSCRIPT CASEFILES_SCRIPT)
-                        = choice ShowCaseFiles()
-                        DisposeScript(CASEFILES_SCRIPT)
-                        (if(choice)
-                            Load(rsSCRIPT CASEFILECATEGORY_SCRIPT)
-                            (if(== choice 1)
-                                ShowCaseFileCategory(CASEFILE_SURVIVAL_BASE CASEFILE_SURVIVAL_COUNT "Survival Endings")
-                            )
-                            (if(== choice 2)
-                                ShowCaseFileCategory(CASEFILE_FAILURE_BASE CASEFILE_FAILURE_COUNT "Failure Endings")
-                            )
-                            (if(== choice 3)
-                                ShowCaseFileCategory(CASEFILE_MECH_BASE CASEFILE_MECH_COUNT "Coping Mechanisms")
-                            )
-                            DisposeScript(CASEFILECATEGORY_SCRIPT)
-                        )
+                        (self:openCaseFiles())
                     )
                 )
             )
@@ -245,75 +253,194 @@
                 )
             )
         )
-        // Parser-driven "examine" flavor text -- look/examine/x only, this
-        // room only (not during event cards). Pure atmosphere, no state
-        // changes. Flat early-return ifs -- see printEnding() above and
-        // CaseFiles.sc's ShowCaseFiles() header for why this codebase never
-        // nests (if...)(else...) more than one level deep.
+        // Parser-driven office flavor text -- this room only (not during event
+        // cards), pure atmosphere with no state changes; "open cabinet" is the
+        // one verb that does something, and it's the same Case Files viewer
+        // a click already opens. The text itself lives in TEXT_OFFICE
+        // (text/office.txt -> text.002 via tools/gen-text.js), not string
+        // literals: this room stays resident under the Case Files viewer,
+        // whose heap margin is the tightest in the game.
         //
-        // Each check below is ONE complete, self-contained "verb-group/noun"
-        // pattern -- not the split "outer non-claiming Said('look>'), then
-        // separate leading-slash Said('/noun') continuation" idiom from SCI
-        // Companion's own docs. That split idiom's OTHER piece ('[/!*]')
-        // already turned out not to work in this build (see prior revision
-        // of this comment, kept in git history), and vocab/word-class was
-        // ruled out directly by testing (nouns already existed correctly
-        // classified) -- so the remaining suspect was the '>' continuation
-        // mechanic itself. Per the kernel docs, a FAILED Said() doesn't
-        // consume/claim anything ("if a match is made, the words are used
-        // up" -- only on success), so independent complete checks tried in
-        // sequence don't need '>' at all; only a successful match needs
-        // claimed(TRUE), and `return` right after ends the search. This
-        // removes every non-literal Said() idiom this feature was built on,
-        // down to just ',' (OR) and '/' (part separator) used in the single
-        // most basic way the docs define them.
+        // Each check is ONE complete, self-contained "verb-group/noun"
+        // pattern tried as a flat sequence of early-return ifs -- NOT the
+        // docs' split Said('look>') + Said('/noun') idiom or '[/!*]', neither
+        // of which works in this build. A failed Said() doesn't consume
+        // anything, so no '>' is needed; order only matters in that specific
+        // nouns must come before a verb's '/*' wildcard, and the wildcard
+        // before the bare verb. Multiple nouns are separate Said() calls
+        // joined by `or` (',' is only proven between verbs). Said('look/car')
+        // also matches "look in car", so "look at X" needs no pattern of its
+        // own.
         (if(not (send pEvent:claimed))
-            (if(Said('look,examine,x/computer'))
+            (if((Said('look,examine,x/computer')) or (Said('look,examine,x/monitor')))
                 (send pEvent:claimed(TRUE))
-                Print("The screen that ends a session and starts the next one. It has never once asked if you're ready.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_COMPUTER)
                 return
             )
             (if(Said('look,examine,x/cabinet'))
                 (send pEvent:claimed(TRUE))
-                Print("Every ending you've ever had, filed and alphabetized. It doesn't judge. It just remembers.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_CABINET)
                 return
             )
             (if(Said('look,examine,x/chair'))
                 (send pEvent:claimed(TRUE))
-                Print("Still warm. You just got up from it.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_CHAIR)
                 return
             )
             (if(Said('look,examine,x/desk'))
                 (send pEvent:claimed(TRUE))
-                Print("Bare, except for whatever you didn't leave behind.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_DESK)
                 return
             )
             (if(Said('look,examine,x/clock'))
                 (send pEvent:claimed(TRUE))
-                Print("Running. It was running before you got here, too.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_CLOCK)
                 return
             )
             (if(Said('look,examine,x/door'))
                 (send pEvent:claimed(TRUE))
-                Print("Closed. Nothing on the other side of it yet.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_DOOR)
                 return
             )
             (if((Said('look,examine,x/mirror')) or (Said('look,examine,x/me')) or (Said('look,examine,x/self')))
                 (send pEvent:claimed(TRUE))
-                Print("You look like someone who just finished something. You're not sure what.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_SELF)
+                return
+            )
+            (if(Said('look,examine,x/window'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_WINDOW)
+                return
+            )
+            (if((Said('look,examine,x/tree')) or (Said('look,examine,x/plant')) or (Said('look,examine,x/sky')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_OUTSIDE)
+                return
+            )
+            (if(Said('look,examine,x/lamp'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_LAMP)
+                return
+            )
+            (if((Said('look,examine,x/book')) or (Said('look,examine,x/shelf')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_BOOKS)
+                return
+            )
+            (if(Said('look,examine,x/keyboard'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_KEYBOARD)
+                return
+            )
+            (if(Said('look,examine,x/drawer'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_DRAWERS)
+                return
+            )
+            (if(Said('look,examine,x/floor'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_FLOOR)
+                return
+            )
+            (if((Said('look,examine,x/wall')) or (Said('look,examine,x/ceiling')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_WALLS)
+                return
+            )
+            (if(Said('look,examine,x/room'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_ROOM)
                 return
             )
             (if(Said('look,examine,x/*'))
                 // A recognized noun, just not one with its own line yet.
                 (send pEvent:claimed(TRUE))
-                Print("You don't see anything special about that.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_OTHER)
                 return
             )
             (if(Said('look,examine,x'))
-                // No noun at all -- every specific check AND the wildcard
-                // above failed to match.
+                // No noun at all.
                 (send pEvent:claimed(TRUE))
-                Print("A cabinet, a computer, a chair, a desk, a clock that hasn't stopped, and a door back out into the rest of your life. That's the whole office. That's supposed to be enough.")
+                Print(TEXT_OFFICE TXT_OFFICE_LOOK_ROOM)
+                return
+            )
+            (if(Said('open/cabinet'))
+                (send pEvent:claimed(TRUE))
+                (self:openCaseFiles())
+                return
+            )
+            (if(Said('open/drawer'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_OPEN_DRAWER)
+                return
+            )
+            // The vocab's "leave" group also holds exit and walk.
+            (if((Said('open/door')) or (Said('leave/*')) or (Said('leave')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LEAVE)
+                return
+            )
+            // The "sit" group also holds rest, lie and sleep.
+            (if((Said('sit/chair')) or (Said('sit')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_SIT)
+                return
+            )
+            // The "turn" group also holds press, push, move and friends.
+            (if(Said('turn/lamp'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LAMP_SWITCH)
+                return
+            )
+            // "take a breath" must come before take's wildcard below.
+            (if((Said('breathe')) or (Said('take/breath')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_BREATHE)
+                return
+            )
+            (if(Said('wait'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_WAIT)
+                return
+            )
+            (if((Said('listen/*')) or (Said('listen')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_LISTEN)
+                return
+            )
+            (if((Said('smell/*')) or (Said('smell')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_SMELL)
+                return
+            )
+            (if(Said('take/*'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_TAKE)
+                return
+            )
+            (if((Said('hug/me')) or (Said('hug/self')) or (Said('hug')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_HUG_SELF)
+                return
+            )
+            (if((Said('talk/*')) or (Said('talk')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_TALK)
+                return
+            )
+            (if(Said('help'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_HELP)
+                return
+            )
+            // Parsed fine but matched nothing above -- answer in the game's
+            // own voice instead of falling through to Game:pragmaFail's
+            // stock "You've left me responseless." (This also pre-empts
+            // Main.sc's template Said('hi'); the parser is only live in
+            // this room anyway.)
+            (if(== (send pEvent:type) evSAID)
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_FALLBACK)
             )
         )
  	)
