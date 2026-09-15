@@ -3,3 +3,21 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+/.idea/
+
+# User's own working art/audio source -- managed manually, not build source.
+/art/
+/docs/
+
+# Local copy of SCI Companion's bundled Help/TemplateGame/Tools/Samples.
+/Resources/
+
+# Zipped distribution builds, regenerated as needed.
+*.zip
+
+# Written by the game/interpreter at runtime, not source: Case Files
+# progress, the remembered player name, and per-launch logs.
+TRSCASE.DAT
+TRSNAME.DAT
+stdout.txt
+stderr.txt

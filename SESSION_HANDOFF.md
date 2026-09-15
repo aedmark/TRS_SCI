@@ -5,17 +5,19 @@ rewrite (previous version had grown to 3500+ lines of blow-by-blow
 debugging history) written at a real milestone: the full six-zone port,
 the heap-exhaustion architecture rewrite, the Case Files viewer, and all
 the smaller systems are built and confirmed working. The old file's full
-history (every bug found and how, every dead end tried) is still in git
-history (`git log -- SESSION_HANDOFF.md`) if a specific past incident
+history (every bug found and how, every dead end tried) is still in the
+browser-game repo's git history (`git -C ~/WebstormProjects/trauma-response-sim
+log -- SESSION_HANDOFF.md` -- this repo's own history only starts at the
+2026-09-14 repo split, see Environment below) if a specific past incident
 ever needs re-reading in detail — this version keeps only what's still
 true and still useful going forward.
 
 **Also done since the rewrite above**: comments across the `.sc` source
-(and the generator templates in `tools/`) were trimmed for shipping --
+(and the generator templates in the browser repo's `tools/`) were trimmed for shipping --
 they'd accumulated a lot of debugging-narrative detail (references to
 this file, "confirmed via the user's own playtest," etc.) that was
 useful mid-production but is noise now. What/how/why is kept, the
-narrative isn't. `TRS_SCI/src/game.sh` and the hand-written core scripts
+narrative isn't. `src/game.sh` and the hand-written core scripts
 (`CaseFiles.sc`, `mechanisms.sc`, `printchoices.sc`, `rm001.sc`,
 `rm002.sc`, `CaseFileAccess.sc`, `CaseFileTitles.sc`) were edited
 directly; the 196 generated event rooms and the 3 generated Case File
@@ -107,7 +109,7 @@ pool (`tools/gen-endings.js`-generated).
 original's own `js/codex.js` grouping) opens a scrollable per-category
 list; selecting a discovered entry and clicking "View" shows its full
 title+description, a sealed entry shows "Sealed. Not yet discovered."
-Persists cross-session to `TRS_SCI/TRSCASE.DAT`. Reachable via the
+Persists cross-session to `TRSCASE.DAT` (repo root, gitignored). Reachable via the
 "Case Files" menu item (`` `^f ``) or by clicking the filing cabinet in
 the ending room. **Confirmed fully working end to end**, including a
 real "Out of heap space" bug on its "View" feature that took two rounds
@@ -498,7 +500,13 @@ confirmed compiling and working end to end.
 - `game.sh` / `game.ini` — constants and the resource manifest,
   respectively. Every new script needs an entry in **both**.
 
-**Content pipeline** (`tools/`): `tools/lib/zone-events.js` is the
+**Content pipeline** (`tools/` in the **browser-game repo**,
+`~/WebstormProjects/trauma-response-sim/tools/` -- not this repo, since
+it reads that repo's `js/content*.js`; every `tools/...` path in this
+file means that one). Generated scripts are written into this repo's
+`src/`, located via `tools/lib/sci-paths.js`: the `TRS_SCI_DIR` env var
+if set, otherwise `~/RiderProjects/TRS_SCI`; it throws rather than
+writing anywhere that has no `src/game.sh`. `tools/lib/zone-events.js` is the
 shared generator library (event-room emission, `sciString()`-based ASCII
 safety/escaping); `tools/gen-<zone>-events.js` ×6 are thin per-zone
 entry points; `tools/gen-endings.js` generates the ending-pool scripts;
@@ -530,22 +538,32 @@ after editing the relevant `js/content*.js` source.
 
 ## Environment / toolchain
 
-- **Game repo**: `/home/gordonk/WebstormProjects/trauma-response-sim/` —
-  the original browser game (`js/`, `css/`, `index.html`) and the SCI0
-  port (`TRS_SCI/`) live in the same repo. `TRS_SCI/src/` has the `.sc`
-  source + compiled `.sco`; `game.ini` is the resource manifest;
+- **Repos — split 2026-09-14.** The SCI0 port is its own repo:
+  `/home/gordonk/RiderProjects/TRS_SCI/` (**public**,
+  github.com/aedmark/TRS_SCI, opened as a Rider project). `src/` has the
+  `.sc` source + compiled `.sco`; `game.ini` is the resource manifest;
   `SCIV.EXE` is the real period-accurate SCI0 interpreter;
-  `resource.map`/`resource.001` are the compiled game output.
-  `TRS_SCI/art/` is the user's own working art/audio source (gitignored,
-  not build source). Any `.zip` directly under `TRS_SCI/` is a
-  regenerated distribution build (gitignored).
+  `resource.map`/`resource.001` are the compiled game output. Gitignored:
+  `art/` (the user's own working art/audio source, not build source),
+  `docs/`, `Resources/` (a local copy of SCI Companion's bundled
+  `Help/`/`TemplateGame/`/`Tools/`/`Samples/`), `.idea/`, `*.zip`
+  (regenerated distribution builds), and runtime output — `TRSCASE.DAT`
+  (Case Files save), `TRSNAME.DAT` (player name), `stdout.txt`/
+  `stderr.txt` (interpreter logs).
+  The original browser game (`js/`, `css/`, `index.html`), the content
+  generators (`tools/`, see Content pipeline above), `docs/SCI0-research-
+  findings.md`, and all pre-split git history stay in
+  `/home/gordonk/WebstormProjects/trauma-response-sim/`, where this port
+  used to live as its `TRS_SCI/` subfolder.
 - **SCI Companion IDE source**: `/home/gordonk/WebstormProjects/SCICompanion/`
   (own git repo, forked at github.com/aedmark/SCICompanion — NOT the
   same repo as the game; this is the IDE/compiler's own C++ source, kept
   separate deliberately). This path has moved twice this project
   (`TRS_SCI/SCICompanion-SRC/` → `~/CLionProjects/SCICompanion/` → here)
   — if a future session finds source at an old path, it's stale; this is
-  the current one.
+  the current one. The built IDE the user actually runs, with its bundled
+  docs (`Help/`, e.g. `Help/Kernels/Said.html`), is its `Release/`
+  subfolder.
 - **Editing**: done directly on the Linux host with normal file tools.
 - **Compiling now works natively under Wine — the VM is no longer
   required.** The "compiler hangs indefinitely under Wine" limitation
@@ -566,7 +584,7 @@ after editing the relevant `js/content*.js` source.
 - **Testing compiled output**: **DOSBox-X**, run natively on the Linux
   host (`paru -S dosbox-x`):
   ```
-  dosbox-x -c "MOUNT C \"<path to TRS_SCI>\"" -c "C:" -c "SCIV.EXE"
+  dosbox-x -c "MOUNT C \"/home/gordonk/RiderProjects/TRS_SCI\"" -c "C:" -c "SCIV.EXE"
   ```
   ScummVM does not work as a test target (see Decisions above). **Real
   Windows XP hardware (via NTVDM, launching the `.exe` from inside the
@@ -592,8 +610,8 @@ after editing the relevant `js/content*.js` source.
      with no synthesizer actually listening on ALSA (confirmed via
      `aconnect -l`). Now `mididevice = fluidsynth` +
      `fluid.soundfont = /usr/share/soundfonts/FluidR3_GM.sf2`.
-  2. `TRS_SCI/dosbox.conf` — the config SCI Companion's own "Run Game"
-     button uses inside the VM. Had no `[midi]` section at all (plain
+  2. `dosbox.conf` — the config SCI Companion's own "Run Game"
+     button used inside the VM (VM-era only; not carried into this repo). Had no `[midi]` section at all (plain
      vanilla DOSBox config, no `fluidsynth` option available). Added:
      `mpu401=intelligent`, `mididevice=win32`, `midiconfig=` — forces the
      Windows MIDI mapper explicitly rather than an ambiguous "default"
@@ -631,8 +649,8 @@ after editing the relevant `js/content*.js` source.
 - **An SCI0 sound resource isn't just an imported MIDI file — it's MIDI
   data plus a per-channel, per-device map.** Each of the 16 MIDI
   channels stores its own driver-device index, required voice count, and
-  a per-device enable bitmask (confirmed via `docs/SCI0-research-
-  findings.md`'s byte-level breakdown and SCI Companion's own
+  a per-device enable bitmask (confirmed via the browser repo's
+  `docs/SCI0-research-findings.md` byte-level breakdown and SCI Companion's own
   `Help/_sources/sounds.txt`). Critically, **the Sound Editor's preview
   button does NOT apply this per-device filtering** — confirmed by the
   user switching the selected device and hearing no change at all. Only
@@ -914,7 +932,7 @@ after editing the relevant `js/content*.js` source.
   currently with 80x60 placeholder art for all 4 options. User is
   handling this art pass solo. Each option needs the full 4-mood set
   (neutral/repression/mask/child), matching the existing `portrait_*.bmp`
-  pattern in `TRS_SCI/art/`. Cel/view mapping (`game.sh`,
+  pattern in `art/`. Cel/view mapping (`game.sh`,
   `PortraitViewForIndex()` in `mechanisms.sc`):
 
   | Portrait option | View # |
