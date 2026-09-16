@@ -28,7 +28,7 @@
 (procedure public (PrintChoices message titleText width glitchText params)
 	(var hDialog, hDText, hIcon, hButtons[6], buttonCnt, paramCnt, curY,
 		btnPressed, totalChoices, pageStart, pageCount, isLastPage, i,
-		isFirstPage)
+		isFirstPage, matched)
 	= paramTotal (- paramTotal 4)
 	= totalChoices (/ paramTotal 2)
 	= pageStart 0
@@ -158,12 +158,19 @@
 		)
 		(send hDialog:open(nwTITLE -1))
 		= btnPressed (send hDialog:doit(NULL))
-		(if(== btnPressed -1)
-			= btnPressed 0
-		)
+		// Escape (and anything else that isn't one of this page's own
+		// buttons) comes back as 0 or -1 rather than a DButton, so treat it
+		// as "no answer yet" and rebuild the same page. Real bug this
+		// fixes: choice values start at 0, and the old code coerced -1 to 0
+		// and fell through the match loop unchanged -- so Escape during an
+		// event silently picked its FIRST choice, effects and all. Callers
+		// that want a way out give it its own button (see rm003.sc's
+		// startSession, whose "Not yet" is a real choice value).
+		= matched FALSE
 		(for (= paramCnt 0) (< paramCnt buttonCnt) (++paramCnt)
 			(if(== btnPressed hButtons[paramCnt])
 				= btnPressed (send btnPressed:value)
+				= matched TRUE
 				break
 			)
 		)
@@ -173,14 +180,16 @@
 		// codebase for 3+-branch chaining) -- MORE_CHOICES and
 		// BACK_CHOICES each adjust pageStart and loop again; anything
 		// else (a real choice or GLITCH_CHOICE) returns immediately.
-		(if(== btnPressed MORE_CHOICES)
-			= pageStart (+ pageStart CHOICES_PER_PAGE)
-		)
-		(if(== btnPressed BACK_CHOICES)
-			= pageStart (- pageStart CHOICES_PER_PAGE)
-		)
-		(if((<> btnPressed MORE_CHOICES) and (<> btnPressed BACK_CHOICES))
-			return(btnPressed)
+		(if(matched)
+			(if(== btnPressed MORE_CHOICES)
+				= pageStart (+ pageStart CHOICES_PER_PAGE)
+			)
+			(if(== btnPressed BACK_CHOICES)
+				= pageStart (- pageStart CHOICES_PER_PAGE)
+			)
+			(if((<> btnPressed MORE_CHOICES) and (<> btnPressed BACK_CHOICES))
+				return(btnPressed)
+			)
 		)
 	)
 )
@@ -298,9 +307,11 @@
 		)
 		(send hDialog:open(nwTITLE -1))
 		= btnPressed (send hDialog:doit(NULL))
-		(if(== btnPressed -1)
-			= btnPressed 0
-		)
+		// -1 means nothing matched below, i.e. Escape or a stray control:
+		// the page is rebuilt rather than returned, same as PrintChoices.
+		// Portrait values are 0..PORTRAIT_COUNT-1 and MORE/BACK_CHOICES, so
+		// -1 can never be a real answer. Without this, Escape returned -1
+		// as the player's "choice" and left the appearance unset.
 		= chosen -1
 		(for (= i 0) (< i pageCount) (++i)
 			(if(== btnPressed hChoiceButtons[i])
@@ -318,14 +329,16 @@
 		)
 		(send hDialog:dispose())
 
-		(if(== chosen MORE_CHOICES)
-			= pageStart (+ pageStart PORTRAIT_PER_PAGE)
-		)
-		(if(== chosen BACK_CHOICES)
-			= pageStart (- pageStart PORTRAIT_PER_PAGE)
-		)
-		(if((<> chosen MORE_CHOICES) and (<> chosen BACK_CHOICES))
-			return(chosen)
+		(if(<> chosen -1)
+			(if(== chosen MORE_CHOICES)
+				= pageStart (+ pageStart PORTRAIT_PER_PAGE)
+			)
+			(if(== chosen BACK_CHOICES)
+				= pageStart (- pageStart PORTRAIT_PER_PAGE)
+			)
+			(if((<> chosen MORE_CHOICES) and (<> chosen BACK_CHOICES))
+				return(chosen)
+			)
 		)
 	)
 )

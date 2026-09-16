@@ -8,6 +8,7 @@
  ******************************************************************************/
 (include "sci.sh")
 (include "game.sh")
+(include "menutext.sh")
 /******************************************************************************/
 (script MENUBAR_SCRIPT)
 /******************************************************************************/
@@ -27,7 +28,7 @@
 	(method (init)
 		AddMenu(
 			"  "
-				"About Template`^a:"+
+				"About T.R.S.`^a:"+
 				"Help`#1"
 		)
 		AddMenu(
@@ -87,15 +88,48 @@
 		(switch(menuItem)
 			(case MENU_ABOUT
 				Print(
-					"       Template Game\n"+
-					" By Brian Provinciano"
+					"     T.R.S.\n"+
+					"Trauma Response Simulator\n"+
+					"\n"+
+					"  Universal Coping\n"+
+					"    Technologies\n"+
+					"\n"+
+					"    by Andrew Edmark"
 					#title "About"
 				)
 			)
 			(case MENU_HELP
-				Print(
-					"<Put your how to play stuff here>"
-					#title "How To Play"
+				// Five short dialogs, shown one after the other, one
+				// paragraph each. Print() never paginates: it sizes a single
+				// dialog to the whole string (only DSelector scrolls, see
+				// Controls.sc), one dialog holding all of this would
+				// overflow the 200px screen, and a blank line inside a
+				// dialog reads badly. The
+				// text lives in TEXT_MENU (text/menu.txt -> text.010,
+				// tools/gen-text.js) rather than as literals here, since
+				// menubar.sc is permanently resident. Print() reads a text
+				// resource natively when its first param is <u 1000
+				// (Controls.sc); #title and #button still take literals.
+				Load(rsTEXT TEXT_MENU)
+				Print(TEXT_MENU TXT_MENU_HELP_TURN
+					#title "How To Play (1 of 5)"
+					#button " More " 1
+				)
+				Print(TEXT_MENU TXT_MENU_HELP_ENDING
+					#title "How To Play (2 of 5)"
+					#button " More " 1
+				)
+				Print(TEXT_MENU TXT_MENU_HELP_OFFICE
+					#title "How To Play (3 of 5)"
+					#button " More " 1
+				)
+				Print(TEXT_MENU TXT_MENU_HELP_TYPING
+					#title "How To Play (4 of 5)"
+					#button " More " 1
+				)
+				Print(TEXT_MENU TXT_MENU_HELP_KEYS
+					#title "How To Play (5 of 5)"
+					#button " OK " 1
 				)
 			)
 			(case MENU_RESTART

@@ -319,8 +319,9 @@
 (define HARD_MODE_MULT_DEN	4)
 
 // The office computer's session prompt (rm003.sc's startSession).
-// SESSION_NOT_YET must stay 0: PrintChoices reports Escape as 0, so
-// Escape backs out too.
+// SESSION_NOT_YET is a real button the player clicks -- PrintChoices
+// ignores Escape entirely (see its own header) rather than turning it
+// into a choice, so every way out of that prompt is a visible one.
 (define SESSION_NOT_YET		0)
 (define SESSION_STANDARD	1)
 (define SESSION_EXTENDED	2)

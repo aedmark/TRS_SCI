@@ -146,8 +146,9 @@
         // mis-click or a change of heart just leaves the player in the
         // office. Returning players pick Standard or Extended Therapy here
         // (this used to be rm001.sc's question); new players just confirm a
-        // standard run. Values are game.sh's SESSION_* -- SESSION_NOT_YET
-        // is 0, which is also what PrintChoices returns for Escape.
+        // standard run. Values are game.sh's SESSION_* -- "Not yet" is a
+        // real button the player clicks, since PrintChoices ignores Escape
+        // rather than turning it into a choice (see its header).
         Load(rsTEXT TEXT_UI)
         GetFarText(TEXT_UI TEXT_UI_NEWSESSION_TITLE @titleBuf)
         GetFarText(TEXT_OFFICE TXT_OFFICE_NOT_YET_BTN @notYetBuf)
