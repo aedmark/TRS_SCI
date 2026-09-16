@@ -761,6 +761,20 @@ after editing the relevant `js/content*.js` source.
   own `msgBuf[1013]` per-call local is proof ~1KB is fine as a per-call
   local, the ceiling is somewhere between roughly 1KB and 3.4KB, never
   pinned down more precisely than that.)
+- **A menu separator consumes an item number, so inserting a menu item
+  silently renumbers every item below it.** Menu IDs are `$MMII` (menu,
+  item) hand-written in `game.sh`, and `AddMenu`'s `"--! :"` separators
+  count as items. Real bug, found 2026-09-15 when the user tested Reset
+  Data: `^r` quit the game, and Quit did nothing. Adding "Reset Data" to
+  the File menu had pushed the real IDs to separator `$204`, Reset Data
+  `$205`, Quit `$206`, while `game.sh` still said Reset Data `$204` and
+  Quit `$205`. So Reset Data's event matched the `MENU_QUIT` case and
+  Quit's matched nothing. The Action and Speed menus were already
+  numbered correctly (Colors `$305` and Case Files `$306` skip the
+  separator at `$304`), which is what confirmed the rule. When adding a
+  menu item, renumber every constant below it, separators included, and
+  check the `SetMenu(... smMENU_SAID ...)` lines too: those attach parser
+  phrases by the same ID and drift the same way.
 - **A dialog's Escape comes back as 0/-1, not a button, and choice
   values that start at 0 turn that into a silent pick.** Real bug, found
   2026-09-15 while fact-checking the itch page: `PrintChoices` coerced
@@ -1033,10 +1047,10 @@ after editing the relevant `js/content*.js` source.
    It compiled clean (including the generated `officetext.sh` and
    `menutext.sh` includes) and the user reports the dialogs work as
    advertised. "use computer" parses correctly too, so `use` has the
-   **Imperative Verb** class it needs in the Vocabulary editor. The
-   individual
-   checks below weren't reported on one by one, so they're still worth a
-   pass when convenient:
+   **Imperative Verb** class it needs in the Vocabulary editor. The user
+   then walked the whole list below on 2026-09-15: everything passed
+   except Reset Data, which turned out to be a menu-ID bug (fixed, see
+   that entry). Keep the list as the regression checklist for this area:
    - Fresh save (move `TRSCASE.DAT`/`TRSNAME.DAT` aside) → title →
      portrait picker first, then name, then the welcome, all in the
      office.
@@ -1057,8 +1071,15 @@ after editing the relevant `js/content*.js` source.
      This is the codebase's first `<` in a `Said()`, if "turn on
      computer" gets the FALLBACK line instead, that operator doesn't
      work in this build.
-   - Restart Game → office. Reset Data, finish a run → the office asks
-     appearance and name again.
+   - Restart Game → office. Confirmed, with the expected caveat that a
+     menu hotkey can't reach you mid-session while a modal dialog owns
+     input (same trait as Alt+M, see the heap-debugging note above).
+   - Reset Data, then finish a run → the office asks for appearance and
+     name again. **This is where the menu-ID bug turned up on
+     2026-09-15**: `^r` quit the game instead, because the File menu's
+     constants didn't account for its separator (see Findings). Fixed by
+     renumbering `MENU_RESETDATA` to `$205` and `MENU_QUIT` to `$206`.
+     Re-verify both this and Quit itself after a recompile.
    - An existing pre-change save keeps its Case Files and just asks for
      the appearance once. Effectively confirmed already: the user's own
      save carried over, was asked for an appearance exactly once, and
