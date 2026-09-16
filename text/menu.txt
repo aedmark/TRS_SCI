@@ -1,0 +1,45 @@
+# Menu-bar text (menubar.sc), currently just the Help (F1) screens. Built
+# into text.010 and src/menutext.sh by `node tools/gen-text.js`; edit this
+# file and re-run that, not the resource in SCI Companion's Text editor.
+#
+# Resource 10 deliberately does NOT match menubar.sc's script number (997):
+# DisposeScript() takes script numbers only, and this project has already
+# been bitten once by a TEXT resource whose number collided with a script's
+# (TEXT_UI 0 vs Main.sc 0, see game.sh). A number no script uses can't
+# repeat that.
+#
+# One paragraph per entry, and one entry per dialog: Print() never
+# paginates (it sizes a single dialog to the whole string, and only
+# DSelector scrolls), a dialog taller than the 200px screen renders garbled
+# rather than clipping, and a blank line inside one reads badly. Keep each
+# entry to roughly 200 characters, about 5 wrapped lines. For scale, the
+# longest string the game already prints this way is ~150 characters, an
+# event prompt in rm200.sc.
+@resource 10
+@define TEXT_MENU
+@prefix TXT_MENU
+
+@header menutext.sh
+
+[HELP_TURN]
+Each turn gives you a moment from your day and three to five ways to handle
+it. Every choice moves Repression, Social Mask and Inner Child, the three
+numbers in the status bar.
+
+[HELP_ENDING]
+If any one of those numbers reaches its limit, the session ends there.
+Otherwise it runs ten turns. Where a moment offers more ways to handle it
+than fit on screen, "More options..." shows the rest and "Back" returns.
+
+[HELP_OFFICE]
+Between sessions you're in your office. Click the filing cabinet to read your
+Case Files, or the computer to begin a session. It asks first, and "Not yet"
+brings you back.
+
+[HELP_TYPING]
+In the office you can also type, the way you would in any Sierra game: LOOK
+AT THE DESK, OPEN THE DRAWER, SIT, BREATHE, HELP.
+
+[HELP_KEYS]
+Ctrl+F opens your Case Files from anywhere. F9 restarts. Ctrl+R erases all
+saved data. Ctrl+Q quits.

@@ -1032,18 +1032,18 @@ after editing the relevant `js/content*.js` source.
 7. **Office hub: compiled 2026-09-14, dialogs confirmed by the user.**
    It compiled clean (including the generated `officetext.sh` and
    `menutext.sh` includes) and the user reports the dialogs work as
-   advertised. One setup step may still be outstanding: in the
-   Vocabulary editor, `use` needs the **Imperative Verb** class
-   (right-click → checkbox, Wine-safe); until it has it, "use computer"
-   answers "That doesn't appear to be a proper sentence." The individual
+   advertised. "use computer" parses correctly too, so `use` has the
+   **Imperative Verb** class it needs in the Vocabulary editor. The
+   individual
    checks below weren't reported on one by one, so they're still worth a
    pass when convenient:
    - Fresh save (move `TRSCASE.DAT`/`TRSNAME.DAT` aside) → title →
      portrait picker first, then name, then the welcome, all in the
      office.
    - Click the computer → "Start a new session?" with Begin / Not yet.
-     Not yet and Escape both leave you in the office; Begin → a 10-turn
-     run.
+     "Not yet" leaves you in the office; Begin → a 10-turn run. Escape
+     does nothing there now: `PrintChoices` rebuilds the prompt rather
+     than treating Escape as a choice.
    - Finish → ending cards → back in the office, with no welcome and the
      music not restarting.
    - `look mirror` → picker; pick a different one and check the event
@@ -1060,7 +1060,11 @@ after editing the relevant `js/content*.js` source.
    - Restart Game → office. Reset Data, finish a run → the office asks
      appearance and name again.
    - An existing pre-change save keeps its Case Files and just asks for
-     the appearance once.
+     the appearance once. Effectively confirmed already: the user's own
+     save carried over, was asked for an appearance exactly once, and
+     kept it across a quit and relaunch. Only re-testable from a backup
+     of a pre-2026-09-15 `TRSCASE.DAT`, since every save the game has
+     written since is 109 lines.
 8. ~~Menu-bar boilerplate~~ **done, confirmed working by the user.**
    `About` (`^a`) no longer says the template's "Template Game / By
    Brian Provinciano"; it names the game, Universal Coping Technologies,
