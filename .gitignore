@@ -7,7 +7,14 @@ riderModule.iml
 
 # User's own working art/audio source -- managed manually, not build source.
 /art/
-/docs/
+/docs/*
+!/docs/README.md
+!/docs/HANDOFF.md
+!/docs/ARCHITECTURE.md
+!/docs/DECISIONS.md
+!/docs/TESTING.md
+!/docs/SCI0-GOTCHAS.md
+!/docs/archive/
 
 # Local copy of SCI Companion's bundled Help/TemplateGame/Tools/Samples.
 /Resources/

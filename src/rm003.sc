@@ -404,6 +404,56 @@
                 Print(TEXT_OFFICE TXT_OFFICE_TALK)
                 return
             )
+            (if((Said('kick/*')) or (Said('kick')) or (Said('hit/*')) or (Said('hit')) or (Said('punch/*')) or (Said('punch')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_KICK)
+                return
+            )
+            (if((Said('cry')) or (Said('weep')) or (Said('sob')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_CRY)
+                return
+            )
+            (if((Said('sleep')) or (Said('nap')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_SLEEP)
+                return
+            )
+            (if((Said('type/*')) or (Said('type')) or (Said('play/game')) or (Said('play')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_PLAY_GAME)
+                return
+            )
+            (if((Said('throw/*')) or (Said('throw')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_THROW)
+                return
+            )
+            (if((Said('eat/*')) or (Said('eat')) or (Said('drink/*')) or (Said('drink')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_EAT)
+                return
+            )
+            (if(Said('dance'))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_DANCE)
+                return
+            )
+            (if((Said('scream')) or (Said('yell')) or (Said('shout')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_SCREAM)
+                return
+            )
+            (if((Said('read/book')) or (Said('read')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_READ_BOOK)
+                return
+            )
+            (if((Said('break/mirror')) or (Said('punch/mirror')) or (Said('smash/mirror')))
+                (send pEvent:claimed(TRUE))
+                Print(TEXT_OFFICE TXT_OFFICE_BREAK_MIRROR)
+                return
+            )
             (if(Said('help'))
                 (send pEvent:claimed(TRUE))
                 Print(TEXT_OFFICE TXT_OFFICE_HELP)

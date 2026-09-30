@@ -137,3 +137,33 @@ Begin a session (10 turns)
 
 [NOT_YET_BTN]
 Not yet
+
+[KICK]
+You deliver a swift, satisfying kick to the furniture. It hurts your toe more than it helps, but only barely.
+
+[CRY]
+You let a few tears fall. No one is here to see them, or to tell you to stop.
+
+[SLEEP]
+You close your eyes and lean back. For a few minutes, the world stops spinning. It's not a full night's rest, but it'll do.
+
+[PLAY_GAME]
+You type a few random commands into the console. The computer doesn't judge your syntax. It just waits.
+
+[THROW]
+You wind up to throw it across the room, then gently place it back down. The impulse was enough.
+
+[EAT]
+You consider eating it, but decide against it. You're not quite that desperate yet.
+
+[DANCE]
+You do a little chair-dance. The filing cabinet is unimpressed, but you feel a tiny bit better.
+
+[SCREAM]
+You take a deep breath and let out a soundless scream. The walls absorb it perfectly.
+
+[READ_BOOK]
+You crack open one of the workbooks. "Chapter 1: Identifying Your Triggers." You close it again. Maybe tomorrow.
+
+[BREAK_MIRROR]
+Seven years of bad luck sounds exhausting right now. You leave the mirror in one piece.

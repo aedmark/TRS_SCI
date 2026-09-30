@@ -1,3 +1,7 @@
+> Archived 2026-09-29: the root `SESSION_HANDOFF.md` as it stood after 2026-09-15, moved whole when the
+> project adopted the AGENTS.md / docs/ layout. Its current facts were redistributed into `AGENTS.md`,
+> `ROADMAP.md` and `docs/`; this copy keeps the full incident stories. Historical, not normative.
+
 # Session handoff: T.R.S. → SCI0 port
 
 Paste this into a fresh context window to resume. This is a cleaned-up
@@ -1043,14 +1047,16 @@ after editing the relevant `js/content*.js` source.
    "I don't understand" (unchanged). If every office reply fails at once,
    suspect `text.003` not being picked up rather than the `Said()`
    patterns.
-7. **Office hub: compiled 2026-09-14, dialogs confirmed by the user.**
+7. ~~Office hub~~ **done: compiled 2026-09-14, whole checklist verified
+   2026-09-15.**
    It compiled clean (including the generated `officetext.sh` and
    `menutext.sh` includes) and the user reports the dialogs work as
    advertised. "use computer" parses correctly too, so `use` has the
    **Imperative Verb** class it needs in the Vocabulary editor. The user
    then walked the whole list below on 2026-09-15: everything passed
-   except Reset Data, which turned out to be a menu-ID bug (fixed, see
-   that entry). Keep the list as the regression checklist for this area:
+   except Reset Data, which turned out to be a menu-ID bug, fixed and
+   re-verified the same day. Keep the list as the regression checklist
+   for this area:
    - Fresh save (move `TRSCASE.DAT`/`TRSNAME.DAT` aside) → title →
      portrait picker first, then name, then the welcome, all in the
      office.
@@ -1079,7 +1085,9 @@ after editing the relevant `js/content*.js` source.
      2026-09-15**: `^r` quit the game instead, because the File menu's
      constants didn't account for its separator (see Findings). Fixed by
      renumbering `MENU_RESETDATA` to `$205` and `MENU_QUIT` to `$206`.
-     Re-verify both this and Quit itself after a recompile.
+     Both confirmed working by the user after the recompile, which also
+     confirmed the diagnosis from the other direction: Quit itself had
+     been dead, since its real ID matched no case.
    - An existing pre-change save keeps its Case Files and just asks for
      the appearance once. Effectively confirmed already: the user's own
      save carried over, was asked for an appearance exactly once, and
