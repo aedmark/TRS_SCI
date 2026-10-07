@@ -1,0 +1,271 @@
+{
+  "$schema": "../3x-documentation-scheme/scheme/manual.schema.json",
+  "project": {
+    "name": "T.R.S.: Trauma Response Simulator (SCI0)",
+    "short_name": "T.R.S.",
+    "version": "unreleased",
+    "repository": "https://github.com/aedmark/TRS_SCI"
+  },
+  "manual": {
+    "title": "{{project.name}} Manual",
+    "subtitle": "The game, its machinery, and the constraints behind the port",
+    "description": "A searchable orientation to the SCI0 port. Each subject connects player-visible behavior to implementation and recorded design rationale; evidence points to the detailed project documentation and source.",
+    "badges": ["SCI0", "320x200 EGA", "196 events", "Python-only docs build"],
+    "footer": "{{project.name}} · {{project.version}} · Built with the 3x Documentation Scheme"
+  },
+  "theme": {
+    "accent": "#f2c14e",
+    "accent_secondary": "#d95d39",
+    "icon": "T"
+  },
+  "sections": [
+    {
+      "id": "experience",
+      "title": "The Player Experience",
+      "description": "Begin with the loop a player sees, then the systems that give a run its shape.",
+      "entries": [
+        {
+          "id": "game-overview",
+          "title": "A Sierra-style trauma simulator",
+          "summary": "T.R.S. is a browser choice game rebuilt as a genuine late-SCI0 DOS game.",
+          "tags": ["overview", "player-facing", "SCI0"],
+          "what": [
+            "Presents ten authored bad moments per standard session, each with three to five responses.",
+            "Tracks Repression, Mask, and Child in the status line and resolves the run through one of 102 ending variants.",
+            "Uses a Sierra-style office hub, dialog choices, and a typed text parser at 320x200 in 16-color EGA."
+          ],
+          "how": "The period `SCIV.EXE` interpreter runs resources compiled from SCI Companion's C-like `.sc` source. Script 0 boots into the office, event rooms execute choices, and the ending room records the result before returning to the office.",
+          "why": "D-001 defines the project as a real, full SCI0 port rather than a visual imitation. That goal makes the interpreter's 16-bit arithmetic, 64KB heap, resource model, and era-appropriate interaction part of the design contract.",
+          "evidence": [
+            {"label": "Project introduction", "target": "README.md"},
+            {"label": "Architecture overview", "target": "docs/ARCHITECTURE.md"},
+            {"label": "Platform decision", "target": "docs/DECISIONS.md#d-001-late-sci0-built-with-sci-companion-3-full-11-port-recorded-2026-09-29-status-accepted"}
+          ],
+          "related": ["office-hub", "session-loop"]
+        },
+        {
+          "id": "office-hub",
+          "title": "The office hub",
+          "summary": "Every launch and completed session returns the player to a room where they choose when to begin again.",
+          "tags": ["player-facing", "parser", "room"],
+          "what": [
+            "Hosts one-time appearance and name setup, the filing cabinet for Case Files, the session computer, and the text parser.",
+            "Lets the player back out of every office-opened pop-up with a visible control.",
+            "Returns after boot, Restart Game, and every ending without forcing another session."
+          ],
+          "how": "`src/rm003.sc` owns the room and parser. It loads scoped Case Files or prompt scripts only around use, reads fixed replies from `TEXT_OFFICE`, and starts `src/rm001.sc` only when the player confirms at the computer.",
+          "why": "D-004 replaced the old direct-to-event flow so the player has a stable in-world pause between sessions. Keeping one-time setup out of the recurring start flow preserves that control and matches the late-Sierra framing.",
+          "evidence": [
+            {"label": "Office implementation", "target": "src/rm003.sc"},
+            {"label": "Office decision", "target": "docs/DECISIONS.md#d-004-the-office-is-the-hub-2026-09-14-status-accepted"},
+            {"label": "Office regression checklist", "target": "docs/TESTING.md#office-hub-walked-in-full-2026-09-15"}
+          ],
+          "related": ["session-loop", "case-files"]
+        },
+        {
+          "id": "session-loop",
+          "title": "The ten-turn session loop",
+          "summary": "A session selects unseen events, applies a response, updates the stats, and ends at a bound or turn limit.",
+          "tags": ["gameplay", "events", "stats"],
+          "what": [
+            "Weights the next event zone toward the player's most endangered stat while preventing repeats within the run.",
+            "Offers authored responses and sometimes an extra glitch response with random, untagged effects.",
+            "Ends immediately if a stat reaches its bound or after the session's allotted turns."
+          ],
+          "how": "`src/rm001.sc` resets run state and calls `EndTurn()`. Resident `src/mechanisms.sc` chooses a weighted zone and unseen room, clamps response effects, updates coping counts, and moves either to another event room or `src/rm002.sc` for the ending.",
+          "why": "The algorithm preserves the browser game's 2.5:1 pressure toward the worst stat while room transitions provide SCI0's safest cleanup boundary. SCI0-only random seeds are accepted because the browser's 32-bit generator cannot be reproduced faithfully with 16-bit arithmetic.",
+          "evidence": [
+            {"label": "Turn-loop implementation", "target": "src/mechanisms.sc"},
+            {"label": "Architecture data flow", "target": "docs/ARCHITECTURE.md#interfaces-and-data-flow"},
+            {"label": "Random-seed decision", "target": "docs/DECISIONS.md#d-003-sci0-side-seeds-only-recorded-2026-09-29-status-accepted"}
+          ],
+          "related": ["event-rooms", "choice-dialogs", "coping-mechanisms"]
+        },
+        {
+          "id": "choice-dialogs",
+          "title": "Choice dialogs and pagination",
+          "summary": "Event cards support all three-to-five authored responses within SCI0's compact dialog UI.",
+          "tags": ["gameplay", "UI", "pagination"],
+          "what": "Displays up to three responses per page, adds More and Back navigation when needed, and returns a real response index or the special glitch value. Escape does not silently choose or dismiss an event.",
+          "how": "Resident script 100 exposes `PrintChoices`. It paginates internally at `CHOICES_PER_PAGE`, draws the selected portrait mood, and translates page-local controls back into the caller's response index.",
+          "why": "Three visible choices fit the SCI0 dialog safely and legibly. Internal pagination gives every event one stable calling contract instead of making 196 generated rooms implement their own navigation.",
+          "evidence": [
+            {"label": "Choice implementation", "target": "src/printchoices.sc"},
+            {"label": "Choice contract", "target": "docs/ARCHITECTURE.md#interfaces-and-data-flow"},
+            {"label": "Choice regression checklist", "target": "docs/TESTING.md#choices"}
+          ],
+          "related": ["session-loop", "portraits"]
+        },
+        {
+          "id": "coping-mechanisms",
+          "title": "Coping mechanisms",
+          "summary": "Repeated response patterns become unlockable run-level modifiers.",
+          "tags": ["gameplay", "progression"],
+          "what": "Tracks five tags—fawn, flight, fight, freeze, and secure—and unlocks a coping mechanism after three uses in one run. An unlocked mechanism passively modifies later effects and becomes discoverable in Case Files.",
+          "how": "Authored choices carry a tag consumed by `ApplyChoiceEffects` in `src/mechanisms.sc`. Per-run counters trigger the modifier, while Case Files slots 102 through 106 retain discovery across runs.",
+          "why": "The system turns repeated response style into mechanics without adding a separate inventory or skill screen. Glitches remain untagged so random effects do not falsely express a deliberate coping pattern.",
+          "evidence": [
+            {"label": "Effects implementation", "target": "src/mechanisms.sc"},
+            {"label": "Case Files index", "target": "docs/ARCHITECTURE.md#case-files-flat-index-casefile_count--109"},
+            {"label": "Roadmap completion", "target": "ROADMAP.md#phase-1-the-port"}
+          ],
+          "related": ["session-loop", "case-files"]
+        },
+        {
+          "id": "case-files",
+          "title": "Persistent Case Files",
+          "summary": "Endings and coping mechanisms discovered across runs remain available from the office cabinet and menu bar.",
+          "tags": ["persistence", "progression", "heap"],
+          "what": "Stores 102 ending discoveries, five coping mechanisms, the Extended Therapy unlock, and the chosen appearance. Players can browse discovered entries by category and open a description.",
+          "how": "`src/CaseFiles.sc` reads and writes 109 scalar slots in `TRSCASE.DAT`. The category UI and description dispatch are Load/Dispose-scoped, with description text split by pool so viewing one file stays within the fragmented 64KB heap.",
+          "why": "Cross-run discovery supplies long-term progression without changing the authored session loop. Scalar globals and per-pool scripts are awkward but match SCI0 visibility and heap limits; the prior category-sized description script exceeded the largest usable block after play.",
+          "evidence": [
+            {"label": "Persistence implementation", "target": "src/CaseFiles.sc"},
+            {"label": "State and index contracts", "target": "docs/ARCHITECTURE.md#case-files-flat-index-casefile_count--109"},
+            {"label": "Heap regression guidance", "target": "docs/TESTING.md#change-to-check-matrix"}
+          ],
+          "related": ["extended-therapy", "heap-discipline", "office-hub"]
+        },
+        {
+          "id": "extended-therapy",
+          "title": "Extended Therapy",
+          "summary": "Surviving once unlocks a longer, more intense New Game+ session.",
+          "tags": ["gameplay", "progression", "new-game-plus"],
+          "what": "Adds a 20-turn session option after the player survives a standard run and scales choice effects by 1.25. The unlock persists between launches.",
+          "how": "A hidden Case Files slot records the survival unlock. The office computer then offers Standard, Extended, and Not yet; the chosen mode sets the turn limit and effect scale used by the resident turn-loop script.",
+          "why": "The mode extends mastered play using the same authored content and progression record. It replaces the browser game's arcade mode, which was deliberately cut because it did not fit the SCI0 port's product shape.",
+          "evidence": [
+            {"label": "Feature roadmap", "target": "ROADMAP.md#phase-1-the-port"},
+            {"label": "Persistent slot contract", "target": "docs/ARCHITECTURE.md#case-files-flat-index-casefile_count--109"},
+            {"label": "Cut-feature decision", "target": "docs/DECISIONS.md#d-005-permanently-cut-features-recorded-2026-09-29-status-accepted"}
+          ],
+          "related": ["case-files", "session-loop"]
+        },
+        {
+          "id": "portraits",
+          "title": "Persistent player portraits",
+          "summary": "The chosen appearance follows the player into event dialogs and changes expression with the most endangered stat.",
+          "tags": ["player-facing", "UI", "persistence"],
+          "what": "Offers four appearances once, saves the choice, and displays neutral, repression, mask, or child moods. The office mirror is the only normal way to choose again.",
+          "how": "Views 801 through 804 each reserve loops 0 through 3 for the four moods. Case Files slot 108 stores the appearance as choice plus one, and `GetPortraitMood()` selects a non-neutral loop after the danger threshold is crossed.",
+          "why": "Persisting one selection avoids interrupting every session, matching the office-hub rule. Encoding zero as never chosen lets the same slot represent setup state without a second flag.",
+          "evidence": [
+            {"label": "Portrait architecture", "target": "docs/ARCHITECTURE.md#portraits"},
+            {"label": "Office regression checklist", "target": "docs/TESTING.md#office-hub-walked-in-full-2026-09-15"},
+            {"label": "Office-hub decision", "target": "docs/DECISIONS.md#d-004-the-office-is-the-hub-2026-09-14-status-accepted"}
+          ],
+          "related": ["choice-dialogs", "case-files"]
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "title": "Architecture and Constraints",
+      "description": "These boundaries make the full content set viable in a late-1980s interpreter.",
+      "entries": [
+        {
+          "id": "event-rooms",
+          "title": "One room per event",
+          "summary": "Each of the 196 authored moments is its own generated SCI room.",
+          "tags": ["architecture", "generated", "heap"],
+          "what": "Maps WORK, HOME, SOCIAL, SELF, BODY, and PUBLIC events to rooms 200 through 395. Each room presents its choices, applies the selected effects, and hands control back to the common turn loop.",
+          "how": "Browser-repository generators emit `src/rm200.sc` through `src/rm395.sc`. `GoToNextEvent()` computes a room from the selected zone base and local index, and `newRoom` lets the interpreter dispose the previous room at its normal boundary.",
+          "why": "D-002 replaced the earlier per-zone dispatcher because repeated manual load/use/dispose cycles fragmented the heap unpredictably. More scripts and manifest entries are a deliberate trade for reliable room cleanup.",
+          "evidence": [
+            {"label": "Room map", "target": "docs/ARCHITECTURE.md#code-map"},
+            {"label": "Room-per-event decision", "target": "docs/DECISIONS.md#d-002-one-room-per-event-recorded-2026-09-29-status-accepted"},
+            {"label": "Generated room sources", "target": "src/rm200.sc"}
+          ],
+          "related": ["session-loop", "content-pipelines", "heap-discipline"]
+        },
+        {
+          "id": "heap-discipline",
+          "title": "64KB heap discipline",
+          "summary": "Scripts are explicitly resident or scoped, and every scoped call site owns a balanced load and dispose pair.",
+          "tags": ["architecture", "memory", "SCI0"],
+          "what": "Keeps the always-needed turn and choice machinery resident while loading Case Files, prompts, endings, and large description pools only around use. It minimizes both peak memory and fragmentation-sensitive load cycles.",
+          "how": "Every call into a scoped script has its own `Load(rsSCRIPT n)` and `DisposeScript(n)` pair. Case Files and its category browser never coexist, large text is split per pool, and buffers larger than a few hundred bytes live at script scope.",
+          "why": "SCI0's 64KB heap is the hard constraint behind the structure. Correct total size is not enough: after a run, fragmentation can leave no contiguous block for a large script, so transitions and load order must also be controlled.",
+          "evidence": [
+            {"label": "Heap rules and invariants", "target": "docs/ARCHITECTURE.md#heap-discipline"},
+            {"label": "SCI0 traps", "target": "docs/SCI0-GOTCHAS.md"},
+            {"label": "Heavy repro", "target": "ROADMAP.md#phase-4-robustness"}
+          ],
+          "related": ["event-rooms", "case-files", "verification-boundary"]
+        },
+        {
+          "id": "content-pipelines",
+          "title": "Generated content and text pipelines",
+          "summary": "Bulk narrative content comes from the browser project; hand-written UI text is generated locally into SCI text resources.",
+          "tags": ["generation", "content", "text"],
+          "what": "Produces event rooms, ending pools, Case File descriptions, office text, and menu text in formats SCI Companion and the interpreter consume. Generated outputs are committed and must not be hand-edited.",
+          "how": "The separate browser repository emits protected `.sc` files from its JavaScript content. In this repository, `node tools/gen-text.js` converts `text/*.txt` into loose `text.NNN` patches and matching index headers, then reads each patch back to verify it.",
+          "why": "Generation keeps 196 events and 102 endings aligned with the canonical browser content while avoiding unsafe manual transcription. Text resources keep fixed strings out of the heap, and loose patches avoid SCI Companion's editor limitations.",
+          "evidence": [
+            {"label": "Pipeline architecture", "target": "docs/ARCHITECTURE.md#content-pipeline"},
+            {"label": "Protected generated areas", "target": "AGENTS.md#protected-areas"},
+            {"label": "Text-resource decision", "target": "docs/DECISIONS.md#d-006-fixed-text-in-text-resources-not-string-literals-recorded-2026-09-29-status-accepted"}
+          ],
+          "related": ["event-rooms", "build-and-run"]
+        }
+      ]
+    },
+    {
+      "id": "working-on-the-port",
+      "title": "Building and Verifying",
+      "description": "The host can validate sources and documentation; the maintainer completes the GUI build and real-interpreter checks.",
+      "entries": [
+        {
+          "id": "build-and-run",
+          "title": "Build and run workflow",
+          "summary": "SCI Companion compiles and packs the game; DOSBox-X runs the resulting period interpreter and resources.",
+          "tags": ["workflow", "build", "DOSBox-X"],
+          "synopsis": "dosbox-x -c \"MOUNT C \\\"$PWD\\\"\" -c \"C:\" -c \"SCIV.EXE\"",
+          "what": "Turns the tracked SCI source and resources into a playable DOS game, then launches that game in the supported runtime. Text and documentation generators can be run independently on the Linux host.",
+          "how": [
+            "In SCI Companion 3, open `resource.map`, choose Compile All, then Rebuild Resources; batches of cross-referencing scripts may need two or three shrinking-error rounds.",
+            "From the repository root, launch `SCIV.EXE` through DOSBox-X with the mounted working directory.",
+            "Run `node tools/gen-text.js` after text-source changes and `python3 tools/check_docs.py` after documentation changes."
+          ],
+          "why": "SCI Companion is the authoritative compiler for this dialect and resource layout, while DOSBox-X with the shipped interpreter is the only supported behavior target. Host-side checks catch deterministic source problems but cannot substitute for compilation and play.",
+          "evidence": [
+            {"label": "Build and run instructions", "target": "docs/TESTING.md#running-the-game"},
+            {"label": "Environment boundary", "target": "AGENTS.md#environments"},
+            {"label": "Resource manifest", "target": "game.ini"}
+          ],
+          "related": ["verification-boundary", "content-pipelines"]
+        },
+        {
+          "id": "verification-boundary",
+          "title": "Verification and evidence boundary",
+          "summary": "A host check, successful compile, and maintainer playtest establish different levels of confidence.",
+          "tags": ["testing", "evidence", "workflow"],
+          "what": "Separates documentation consistency, text-resource round trips, compilation, and in-game behavior into explicit checks. Only a dated maintainer observation in the compiled game is called confirmed.",
+          "how": "`docs/TESTING.md` maps each changed area to minimum checks and focused regression lists. Agents run standard-library and Node checks, report what was not possible, and leave SCI Companion compilation and DOSBox-X visual or behavioral checks to the maintainer.",
+          "why": "The Linux agent session cannot operate the Wine GUI compiler or see the game screen. Precise evidence language prevents source inspection or a clean static check from being mistaken for runtime confirmation.",
+          "evidence": [
+            {"label": "Testing contract", "target": "docs/TESTING.md"},
+            {"label": "Finishing rules", "target": "AGENTS.md#finishing-a-change"},
+            {"label": "Current verified state", "target": "docs/HANDOFF.md#current-state"}
+          ],
+          "related": ["build-and-run", "heap-discipline"]
+        },
+        {
+          "id": "documentation-system",
+          "title": "The project documentation system",
+          "summary": "Purpose-built Markdown records remain authoritative while this manual supplies a searchable cross-cutting overview.",
+          "tags": ["documentation", "3x", "workflow"],
+          "what": "Routes current state, plans, architecture, decisions, tests, and SCI0 traps to separate owned documents. This manual connects selected subjects through explicit what, how, why, evidence, and related-entry fields.",
+          "how": "`docs/manual.json` is the editable 3x source and `docs/manual.html` is generated by the vendored Python tool. `python3 tools/check_docs.py` validates the normal document graph, checks the manual, and fails if the committed HTML differs from a fresh build.",
+          "why": "D-007 stopped one handoff file from mixing durable and temporary knowledge. D-008 adds a newcomer-friendly reading path without making the generated manual a second authority for volatile state or exhaustive detail.",
+          "evidence": [
+            {"label": "Documentation map", "target": "docs/README.md"},
+            {"label": "Layout decision", "target": "docs/DECISIONS.md#d-007-adopt-the-agentsmd-documentation-layout-2026-09-29-status-accepted"},
+            {"label": "3x decision", "target": "docs/DECISIONS.md#d-008-add-a-generated-3x-project-manual-2026-10-07-status-accepted"}
+          ],
+          "related": ["verification-boundary", "game-overview"]
+        }
+      ]
+    }
+  ]
+}

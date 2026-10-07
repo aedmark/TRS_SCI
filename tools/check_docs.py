@@ -12,6 +12,7 @@ Errors (exit 1):
   - a roadmap ID, decision number or question mentioned in a doc that does not exist
   - two session-log entries with the same number (HANDOFF and docs/archive/ together)
   - a relative link, or a path in AGENTS.md's Repository map table, that points at nothing
+  - the 3x manual source is invalid, or its generated HTML is missing or stale
 Warnings (exit 0):
   - HANDOFF's "Last updated" is missing, or older than its newest session-log entry
   - HANDOFF's session log or "Current state" has outgrown the limits below (time to archive)
@@ -19,7 +20,9 @@ Warnings (exit 0):
 Standard library only. HTML comments are ignored, so examples can live in them.
 """
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,6 +34,9 @@ DOCS = [
 # Keep in step with AGENTS.md (end of session, step 3) and HANDOFF's header.
 LOG_LIMIT = 10
 CURRENT_STATE_LINES = 80
+MANUAL_TOOL = ROOT / "3x-documentation-scheme" / "scripts" / "manual.py"
+MANUAL_SOURCE = ROOT / "docs" / "manual.json"
+MANUAL_OUTPUT = ROOT / "docs" / "manual.html"
 
 ITEM_RE = re.compile(r"\bP(\d+)-(\d+)\b")
 DECISION_RE = re.compile(r"\bD-(\d{3})\b")
@@ -169,6 +175,30 @@ def main():
         if current.count("\n") > CURRENT_STATE_LINES:
             warnings.append(f"docs/HANDOFF.md: Current state is {current.count(chr(10))} lines (limit "
                             f"{CURRENT_STATE_LINES}); move history to the session log")
+
+    manual_files = (MANUAL_TOOL, MANUAL_SOURCE, MANUAL_OUTPUT)
+    missing_manual_files = [path.relative_to(ROOT) for path in manual_files if not path.is_file()]
+    if missing_manual_files:
+        errors.append("3x manual is incomplete; missing " + ", ".join(map(str, missing_manual_files)))
+    else:
+        checked = subprocess.run(
+            [sys.executable, str(MANUAL_TOOL), "check", str(MANUAL_SOURCE)],
+            cwd=ROOT, capture_output=True, text=True
+        )
+        if checked.returncode:
+            detail = (checked.stderr or checked.stdout).strip().replace("\n", "; ")
+            errors.append(f"docs/manual.json failed 3x validation: {detail}")
+        with tempfile.TemporaryDirectory(prefix="trs-3x-") as temp_dir:
+            generated = Path(temp_dir) / "manual.html"
+            built = subprocess.run(
+                [sys.executable, str(MANUAL_TOOL), "build", str(MANUAL_SOURCE), "--output", str(generated)],
+                cwd=ROOT, capture_output=True, text=True
+            )
+            if built.returncode:
+                detail = (built.stderr or built.stdout).strip().replace("\n", "; ")
+                errors.append(f"docs/manual.html could not be regenerated: {detail}")
+            elif generated.read_bytes() != MANUAL_OUTPUT.read_bytes():
+                errors.append("docs/manual.html is stale; rebuild it from docs/manual.json")
 
     for line in errors:
         print(f"ERROR {line}")

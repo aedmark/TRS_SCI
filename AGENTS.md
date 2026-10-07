@@ -109,8 +109,10 @@ permission.
 | `docs/DECISIONS.md` | Append-only decisions; open questions |
 | `docs/TESTING.md` | How to build, run, and what the regression checklists cover |
 | `docs/SCI0-GOTCHAS.md` | Dialect and toolchain traps already hit once |
+| `docs/manual.json`, `docs/manual.html` | 3x manual source and generated standalone manual |
 | `docs/archive/` | Historical material no longer current |
 | `tools/check_docs.py` | Documentation consistency checks |
+| `3x-documentation-scheme/` | Vendored standard-library generator, schema, tests, and scheme reference |
 
 ## Engineering conventions
 

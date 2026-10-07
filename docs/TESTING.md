@@ -7,7 +7,7 @@ the evidence is the maintainer's playtest of a compiled build, recorded in HANDO
 
 | Check | How | Proves | Does not prove | Who |
 | --- | --- | --- | --- | --- |
-| Docs | `python3 tools/check_docs.py` | Links, IDs and placeholders in the docs are consistent | Anything about the game | Anyone |
+| Docs | `python3 tools/check_docs.py` | Links, IDs, placeholders, and the 3x manual source/build are consistent | Anything about the game | Anyone |
 | Text build | `node tools/gen-text.js` | Each `text.NNN` round-trips; entries are ASCII and fit `Print()`'s 1012-byte buffer | That the room uses the right index | Anyone |
 | Compile | SCI Companion: Compile All, then Rebuild Resources | Syntax, symbols, and that vocab words exist | Word classes, runtime heap, behaviour | Maintainer |
 | Play | DOSBox-X, see below | The feature works in the real interpreter | Other emulators or hardware | Maintainer |
@@ -29,6 +29,7 @@ they are the maintainer's real progress.
 | Changed area | Minimum checks | Additional evidence |
 | --- | --- | --- |
 | Documentation only | `python3 tools/check_docs.py` | |
+| 3x manual source or generator | `python3 tools/check_docs.py`; open `docs/manual.html` and check navigation, search, and narrow-screen layout | |
 | `text/*.txt` | `node tools/gen-text.js`, compile, read each changed reply in game | |
 | Office parser (`rm003.sc`) | Compile; the parser checklist below | New words' vocab classes checked in the Vocabulary editor |
 | Anything Case Files touches, or a new resident script | Compile; View a file after a full run | The heavy heap repro (P4-01) |

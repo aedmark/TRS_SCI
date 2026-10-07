@@ -61,6 +61,18 @@ Generated event and ending text stays in generated scripts.
 gitignored except the files listed in `.gitignore`, so `docs/Itch.md` remains private.
 **Consequences:** Run `python3 tools/check_docs.py` after doc changes.
 
+## D-008 Add a generated 3x project manual  (2026-10-07, status: accepted)
+**Context:** The split documentation has authoritative detail, but a newcomer must traverse several files to connect
+the game's behavior, implementation, and design rationale.
+**Decision:** Add `docs/manual.json` as a curated what/how/why overview and generate the standalone
+`docs/manual.html` with the vendored `3x-documentation-scheme/`. The existing Markdown documents remain the
+authoritative detailed sources and the manual cites them as evidence. `tools/check_docs.py` validates the source and
+fails when the generated HTML is stale.
+**Alternatives:** Reformat every existing document into 3x entries, which would duplicate or displace purpose-built
+roadmap, handoff, testing, and decision records; publish only the JSON, which would lose the searchable reader view.
+**Consequences:** Manual-affecting documentation changes also update `docs/manual.json` and regenerate
+`docs/manual.html`. The vendored generator adds no dependency beyond Python 3.
+
 ## Open questions
 
 Numbers are permanent; an answered question stays, with the answer and its date.

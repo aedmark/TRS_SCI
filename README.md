@@ -17,4 +17,5 @@ dosbox-x -c "MOUNT C \"$PWD\"" -c "C:" -c "SCIV.EXE"
 Source is in `src/` (SCI Companion's `.sc` dialect). Open `resource.map` in SCI Companion 3, then Compile All and
 Rebuild Resources. Text in `text/` is built with `node tools/gen-text.js`.
 
-Contributor and agent documentation: [AGENTS.md](AGENTS.md) and [docs/](docs/README.md).
+Explore the game and its design in the standalone [3x project manual](docs/manual.html). Contributor and agent
+documentation: [AGENTS.md](AGENTS.md) and [docs/](docs/README.md).

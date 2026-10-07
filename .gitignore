@@ -4,6 +4,7 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 /.idea/
+__pycache__/
 
 # User's own working art/audio source -- managed manually, not build source.
 /art/
@@ -14,6 +15,8 @@ riderModule.iml
 !/docs/DECISIONS.md
 !/docs/TESTING.md
 !/docs/SCI0-GOTCHAS.md
+!/docs/manual.json
+!/docs/manual.html
 !/docs/archive/
 
 # Local copy of SCI Companion's bundled Help/TemplateGame/Tools/Samples.
